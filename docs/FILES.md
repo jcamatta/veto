@@ -40,6 +40,10 @@ added, edited, renamed, or deleted.**
   staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
   required past 30 source lines (locks, generated output, docs, and .husky
   itself excluded).
+- `.claude/skills/finish-plan/SKILL.md` — the plan-closing skill: verify the
+  plan is done and the checks are green, draft the PR description from the
+  plan, remove the plan doc, push the branch, and open the GitHub PR for the
+  user's review.
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, effects at the edges, no
   duplication, behavior-focused tests) over `src`/`test`; documentation is

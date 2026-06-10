@@ -21,8 +21,12 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
   `<type>/<description>` with type in
   `feature|feat|bugfix|fix|hotfix|release|chore` and a lowercase
   hyphen-separated description. Direct commits to `main` are rejected by
-  `.husky/check-branch.sh`; when the gates pass, land the branch with
-  `git merge --ff-only` and delete it. Solo project: no remote PRs.
+  `.husky/check-branch.sh`.
+- **A branch is associated with its plan.** When the plan is complete
+  (including removing the plan doc), close it with the `finish-plan` skill
+  (`.claude/skills/finish-plan/SKILL.md`): verify the checks, push the
+  branch, and open a GitHub PR (`gh pr create`) with a structured
+  description. The user reviews and merges the PR — never merge it yourself.
 - Conventional Commits: `<type>(<scope>): <description>` — allowed types:
   `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
   `style`, `test`. Short, imperative, lowercase description; no trailing period;
