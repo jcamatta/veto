@@ -107,7 +107,10 @@ describe('reduce', () => {
         reviewer: 'a',
         raw: {
           type: 'assistant',
-          message: { content: [{ type: 'tool_use' }, { type: 'text' }] }
+          message: {
+            model: 'claude-sonnet-4-6',
+            content: [{ type: 'tool_use' }, { type: 'text' }]
+          }
         }
       }),
       AgentEvent.make({
@@ -115,7 +118,12 @@ describe('reduce', () => {
         raw: {
           type: 'result',
           result: '{}',
-          usage: { input_tokens: 100, output_tokens: 20 },
+          usage: {
+            input_tokens: 100,
+            cache_creation_input_tokens: 400,
+            cache_read_input_tokens: 4000,
+            output_tokens: 20
+          },
           total_cost_usd: 0.01,
           num_turns: 3,
           duration_ms: 1500
@@ -123,8 +131,11 @@ describe('reduce', () => {
       })
     ])
     expect(state.reviewers[0]?.stats).toEqual({
+      model: 'claude-sonnet-4-6',
       turns: 3,
       inputTokens: 100,
+      cacheCreationTokens: 400,
+      cacheReadTokens: 4000,
       outputTokens: 20,
       costUsd: 0.01,
       durationMs: 1500,

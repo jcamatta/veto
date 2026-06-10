@@ -6,6 +6,8 @@ const ResultShape = Schema.Struct({
   usage: Schema.optional(
     Schema.Struct({
       input_tokens: Schema.optional(Schema.Number),
+      cache_creation_input_tokens: Schema.optional(Schema.Number),
+      cache_read_input_tokens: Schema.optional(Schema.Number),
       output_tokens: Schema.optional(Schema.Number)
     })
   ),
@@ -16,7 +18,10 @@ const ResultShape = Schema.Struct({
 
 const AssistantShape = Schema.Struct({
   type: Schema.Literal('assistant'),
-  message: Schema.Struct({ content: Schema.Array(Schema.Unknown) })
+  message: Schema.Struct({
+    model: Schema.optional(Schema.String),
+    content: Schema.Array(Schema.Unknown)
+  })
 })
 
 const BlockShape = Schema.Struct({ type: Schema.String })
@@ -26,8 +31,11 @@ const decodeAssistant = Schema.decodeUnknownOption(AssistantShape)
 const decodeBlock = Schema.decodeUnknownOption(BlockShape)
 
 const emptyStats: ReviewerStats = {
+  model: null,
   turns: null,
   inputTokens: null,
+  cacheCreationTokens: null,
+  cacheReadTokens: null,
   outputTokens: null,
   costUsd: null,
   durationMs: null,
@@ -46,12 +54,6 @@ const isToolUse = (block: unknown): boolean =>
     onSome: (b) => b.type === 'tool_use'
   })
 
-const toolUses = (raw: unknown): number =>
-  Option.match(decodeAssistant(raw), {
-    onNone: () => 0,
-    onSome: (m) => m.message.content.filter(isToolUse).length
-  })
-
 const withResult =
   (stats: ReviewerStats) =>
   (raw: unknown): ReviewerStats =>
@@ -61,19 +63,34 @@ const withResult =
         ...stats,
         turns: plus(stats.turns)(r.num_turns),
         inputTokens: plus(stats.inputTokens)(r.usage?.input_tokens),
+        cacheCreationTokens: plus(stats.cacheCreationTokens)(
+          r.usage?.cache_creation_input_tokens
+        ),
+        cacheReadTokens: plus(stats.cacheReadTokens)(
+          r.usage?.cache_read_input_tokens
+        ),
         outputTokens: plus(stats.outputTokens)(r.usage?.output_tokens),
         costUsd: plus(stats.costUsd)(r.total_cost_usd),
         durationMs: plus(stats.durationMs)(r.duration_ms)
       })
     })
 
+const withAssistant =
+  (stats: ReviewerStats) =>
+  (raw: unknown): ReviewerStats =>
+    Option.match(decodeAssistant(raw), {
+      onNone: () => stats,
+      onSome: (m) => ({
+        ...stats,
+        model: m.message.model ?? stats.model,
+        toolCalls: stats.toolCalls + m.message.content.filter(isToolUse).length
+      })
+    })
+
 const accumulateMessage =
   (stats: ReviewerStats) =>
-  (raw: unknown): ReviewerStats => {
-    const next = withResult(stats)(raw)
-    const calls = toolUses(raw)
-    return calls === 0 ? next : { ...next, toolCalls: next.toolCalls + calls }
-  }
+  (raw: unknown): ReviewerStats =>
+    withAssistant(withResult(stats)(raw))(raw)
 
 const bumpDenials = (stats: ReviewerStats): ReviewerStats => ({
   ...stats,

@@ -36,8 +36,11 @@ const projection: LatestProjection = {
       ],
       resolved: [fp('cccccccccccc')],
       stats: {
+        model: 'claude-sonnet-4-6',
         turns: 4,
         inputTokens: 12450,
+        cacheCreationTokens: 7000,
+        cacheReadTokens: 90000,
         outputTokens: 2100,
         costUsd: 0.084,
         durationMs: 16140,
@@ -97,7 +100,7 @@ describe('renderMarkdown', () => {
   it('renders the stats line and fail-open cause', () => {
     const md = renderMarkdown(projection)
     expect(md).toContain(
-      '_4 turns · 12450 in / 2100 out tokens · 5 tool calls (2 denied) · 16.1s · $0.0840_'
+      '_claude-sonnet-4-6 · 4 turns · 12450 in / 2100 out tokens · 7000 cache write / 90000 cache read · 5 tool calls (2 denied) · 16.1s · $0.0840_'
     )
     expect(md).toContain('Failed open: AgentUnavailable: credit exhausted')
   })

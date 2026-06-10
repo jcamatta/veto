@@ -36,8 +36,11 @@ const projection: LatestProjection = {
       ],
       resolved: [fp('cccccccccccc')],
       stats: {
+        model: 'claude-sonnet-4-6',
         turns: 4,
         inputTokens: 12450,
+        cacheCreationTokens: 7000,
+        cacheReadTokens: 90000,
         outputTokens: 2100,
         costUsd: 0.084,
         durationMs: 16140,
@@ -94,7 +97,7 @@ describe('renderPretty', () => {
   it('renders the stats line when stats are present', () => {
     const text = renderPretty(projection)
     expect(text).toContain(
-      '  4 turns · 12450 in / 2100 out tokens · 5 tool calls (2 denied) · 16.1s · $0.0840'
+      '  claude-sonnet-4-6 · 4 turns · 12450 in / 2100 out tokens · 7000 cache write / 90000 cache read · 5 tool calls (2 denied) · 16.1s · $0.0840'
     )
   })
 

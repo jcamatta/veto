@@ -7,8 +7,11 @@ const decode = Schema.decodeUnknownEither(ReviewerStats)
 describe('ReviewerStats schema', () => {
   it('decodes a fully populated stats object', () => {
     const result = decode({
+      model: 'claude-sonnet-4-6',
       turns: 3,
       inputTokens: 1000,
+      cacheCreationTokens: 500,
+      cacheReadTokens: 9000,
       outputTokens: 200,
       costUsd: 0.05,
       durationMs: 1500,
@@ -20,8 +23,11 @@ describe('ReviewerStats schema', () => {
 
   it('decodes nullable usage fields as null', () => {
     const result = decode({
+      model: null,
       turns: null,
       inputTokens: null,
+      cacheCreationTokens: null,
+      cacheReadTokens: null,
       outputTokens: null,
       costUsd: null,
       durationMs: null,
@@ -33,8 +39,11 @@ describe('ReviewerStats schema', () => {
 
   it('rejects negative counters', () => {
     const result = decode({
+      model: null,
       turns: null,
       inputTokens: null,
+      cacheCreationTokens: null,
+      cacheReadTokens: null,
       outputTokens: null,
       costUsd: null,
       durationMs: null,
@@ -46,8 +55,11 @@ describe('ReviewerStats schema', () => {
 
   it('rejects fractional turn counts', () => {
     const result = decode({
+      model: null,
       turns: 1.5,
       inputTokens: null,
+      cacheCreationTokens: null,
+      cacheReadTokens: null,
       outputTokens: null,
       costUsd: null,
       durationMs: null,

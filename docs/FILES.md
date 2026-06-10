@@ -93,9 +93,10 @@ added, edited, renamed, or deleted.**
   already-parsed structured-output value); both
   `Result<ModelFindings, FindingsParseError>`.
 - `src/core/agent-stats.ts` — `emptyStats`, `accumulateMessage`, and
-  `bumpDenials`: fold raw agent messages into `ReviewerStats` (usage, cost,
-  turns, duration from result messages; tool_use counts from assistant
-  messages; denial counter), tolerant of unknown shapes.
+  `bumpDenials`: fold raw agent messages into `ReviewerStats` (usage incl.
+  cache creation/read tokens, cost, turns, duration from result messages;
+  model and tool_use counts from assistant messages; denial counter),
+  tolerant of unknown shapes.
 - `src/core/stats-format.ts` — `formatStats`: `ReviewerStats` → the one-line
   human-readable stats summary shared by the pretty and markdown renderers
   (null segments dropped).
@@ -236,8 +237,9 @@ added, edited, renamed, or deleted.**
   (with optional per-reviewer `stats` and fail-open `failure` cause), and
   the `LatestProjection` schema (the `latest.json` shape).
 - `src/domain/reviewer-stats.ts` — `ReviewerStats` schema: per-reviewer run
-  statistics (turns, input/output tokens, cost, duration — nullable when the
-  backend does not report them — plus tool-call and denial counters).
+  statistics (model, turns, input/output and cache creation/read tokens,
+  cost, duration — nullable when the backend does not report them — plus
+  tool-call and denial counters).
 - `src/domain/review-event.ts` — the ten tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,

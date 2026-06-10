@@ -56,8 +56,11 @@ describe('LatestProjection', () => {
         resolved: [],
         failure: 'TimeoutException: timed out',
         stats: {
+          model: null,
           turns: 2,
           inputTokens: 100,
+          cacheCreationTokens: null,
+          cacheReadTokens: null,
           outputTokens: 50,
           costUsd: null,
           durationMs: 900,
