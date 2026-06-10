@@ -27,7 +27,8 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     shell code wraps it for `Stream.runFold`.
   - `buildProjection` derives `blocking` from findings, not from the
     `RunCompleted` event.
-- [x] **Phase 4 — done, implemented, awaiting user review & commit.** Ports as
+- [x] **Phase 4 — done, committed** (`eb7dce1`, includes the rename to
+  `veto` and the suppression-directive lint ban). Ports as
   `Context.Tag` services in `src/ports/` (`Git`, `Agent`, `RunStore`,
   `Reporter`, `ReviewClock`), test adapters in `test/adapters/` (following the
   `fake-hash.ts` precedent — coverage only counts `src/**`); gates green
