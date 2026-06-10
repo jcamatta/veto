@@ -77,9 +77,6 @@ added, edited, renamed, or deleted.**
 - `docs/plans/default-veto-dir.md` — planned: bare `veto` defaults to
   `<repo-root>/.veto/` as the config target when no positional dir or
   `--config` is given (exit 2 with a bootstrap hint otherwise).
-- `docs/plans/git-installable.md` — planned: make
-  `npm i -D github:jcamatta/veto` work by building `dist/` in a guarded
-  `prepare` script (tsup always, husky only in a real checkout).
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
