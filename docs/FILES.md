@@ -80,9 +80,6 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
-- `docs/plans/default-veto-dir.md` — planned: bare `veto` defaults to
-  `<repo-root>/.veto/` as the config target when no positional dir or
-  `--config` is given (exit 2 with a bootstrap hint otherwise).
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
