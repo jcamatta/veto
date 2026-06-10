@@ -140,7 +140,11 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     itself; the skip-path run costs ~1.3 s, a real review ~16 s.
   - Criterion 2 measured as marginal cost: a second non-matching reviewer
     adds ~20 ms to the run (< 100 ms), zero model calls.
-- [ ] Phase 9 — observability, SDK upgrades & generalization (v1.1).
+- [x] **Phase 9 — done.** Tasks 1–4 shipped incrementally after Phase 8
+  (run-summary stats, structured outputs, per-reviewer knobs + `--timeout`,
+  the `.veto` rename). Task 5 (`claude_code` preset system prompt) shipped
+  last: `buildPrompt` splits system vs user text and the SDK adapter sends
+  the system text via the preset with `excludeDynamicSections: true`.
 
 ## Phase 1 — Scaffold & tooling
 

@@ -30,6 +30,7 @@ type SessionInput = {
   readonly key: RunKey
   readonly attempt: number
   readonly prompt: string
+  readonly system: string
   readonly policy: AgentRunInput['policy']
   readonly maxTurns: number
   readonly model: string | null
@@ -77,6 +78,7 @@ const collectEvents = (
       agent
         .run({
           prompt: input.prompt,
+          system: input.system,
           policy: input.policy,
           limits: { maxTurns: input.maxTurns },
           outputSchema: input.outputSchema,

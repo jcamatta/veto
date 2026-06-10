@@ -68,6 +68,10 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
+- `docs/plans/claude-code-preset.md` — the `claude_code` preset system
+  prompt (PLAN.md Phase 9 task 5): `buildPrompt` splits system vs user text,
+  the `Agent` port carries the system text as opaque data, the SDK adapter
+  sends it via the preset with `excludeDynamicSections: true`.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
@@ -97,10 +101,11 @@ added, edited, renamed, or deleted.**
   `filterSuppressed` (drop suppressed findings, report their fingerprints).
 - `src/core/baseline-diff.ts` — `diffBaseline`: previous baseline × current
   findings → resolved fingerprints / persisting / fresh, matched by fingerprint.
-- `src/core/prompt.ts` — `buildPrompt`: systemPrompt + rules (identified
-  rules render as `[id] text` and findings must cite the id) + staged files +
-  diff + optional baseline with Layer-2 instructions + strict-JSON output
-  instruction; `appendParseRetry` appends the schema error for the one
+- `src/core/prompt.ts` — `buildPrompt`: the split `ReviewPrompt` — system
+  text (reviewer persona + rules; identified rules render as `[id] text` and
+  findings must cite the id) and user text (staged files + diff + optional
+  baseline with Layer-2 instructions + strict-JSON output instruction);
+  `appendParseRetry` appends the schema error to the user text for the one
   findings-decode retry.
 - `src/core/rules.ts` — `ruleKey` / `ruleText` / `ruleKeys`: project a
   `ReviewerRule` (plain string or `{id, rule}`) onto the key findings cite
@@ -164,8 +169,9 @@ added, edited, renamed, or deleted.**
 
 - `src/ports/git.ts` — the `Git` port: `GitService` (stagedDiff, head, branch,
   stagedFile) failing with `GitError`, plus the `Git` Context tag.
-- `src/ports/agent.ts` — the `Agent` port: `AgentRunInput` (prompt, injected
-  tool-call policy, limits, opaque `outputSchema`/`model`/`effort` hints
+- `src/ports/agent.ts` — the `Agent` port: `AgentRunInput` (user prompt,
+  system text, injected tool-call policy, limits, opaque
+  `outputSchema`/`model`/`effort` hints
   interpreted only by adapters), the `AgentStreamItem` union
   (`AgentMessage`/`AgentDenial`), and
   `AgentService.run` returning a `Stream` failing with `AgentUnavailable`;
@@ -200,7 +206,9 @@ added, edited, renamed, or deleted.**
 - `src/adapters/sdk-agent.ts` — the `Agent` port via
   `@anthropic-ai/claude-agent-sdk` `query()` wrapped with
   `Stream.fromAsyncIterable`: read-only allowlist (Read/Grep/Glob), `maxTurns`,
-  `settingSources: []`, repo-root `cwd`, and `outputFormat` (json_schema)
+  `settingSources: []`, repo-root `cwd`, the system text sent as the
+  `claude_code` preset `systemPrompt` (`append` + `excludeDynamicSections`),
+  and `outputFormat` (json_schema)
   when an output schema is requested; the injected policy runs in the SDK's
   `canUseTool` callback, denials are queued and interleaved into the stream as
   `AgentDenial`; every failure maps to `AgentUnavailable`; the query function

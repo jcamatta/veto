@@ -120,15 +120,17 @@ const failOpen =
     }).pipe(Effect.as([started, failed]))
   }
 
-const liveSession = ({ run, startedAt }: LiveSession) =>
-  runSession({
+const liveSession = ({ run, startedAt }: LiveSession) => {
+  const prompt = buildPrompt({
+    config: run.reviewer.config,
+    diff: run.diff,
+    baseline: run.baseline
+  })
+  return runSession({
     key: run.key,
     attempt: run.attempt,
-    prompt: buildPrompt({
-      config: run.reviewer.config,
-      diff: run.diff,
-      baseline: run.baseline
-    }),
+    prompt: prompt.user,
+    system: prompt.system,
     policy: policyFor(run),
     maxTurns: run.reviewer.config.maxTurns ?? defaultMaxTurns,
     model: run.reviewer.config.model ?? null,
@@ -148,6 +150,7 @@ const liveSession = ({ run, startedAt }: LiveSession) =>
       }).pipe(Effect.map((concluded) => [...events, ...concluded]))
     )
   )
+}
 
 const live = (
   run: ReviewerRun
