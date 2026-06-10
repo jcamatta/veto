@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { parseFindings } from '../../src/core/findings-parse.js'
+import {
+  parseFindings,
+  structuredFindings
+} from '../../src/core/findings-parse.js'
 import { isErr, isOk } from '../../src/core/result.js'
 
 const valid = JSON.stringify({
@@ -65,6 +68,28 @@ describe('parseFindings', () => {
     if (isErr(result)) {
       expect(result.error._tag).toBe('FindingsParseError')
       expect(result.error.message.length).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('structuredFindings', () => {
+  it('decodes an already-parsed findings object', () => {
+    const result = structuredFindings({
+      findings: [
+        { severity: 'error', file: 'src/a.ts', line: 1, rule: 'r', message: 'm' }
+      ]
+    })
+    expect(isOk(result)).toBe(true)
+    if (isOk(result)) {
+      expect(result.value.findings[0]?.severity).toBe('error')
+    }
+  })
+
+  it('fails with FindingsParseError on a schema mismatch', () => {
+    const result = structuredFindings({ findings: [{ severity: 'fatal' }] })
+    expect(isErr(result)).toBe(true)
+    if (isErr(result)) {
+      expect(result.error._tag).toBe('FindingsParseError')
     }
   })
 })

@@ -11,10 +11,13 @@ type AgentLimits = {
   readonly maxTurns: number
 }
 
+type JsonSchema = Record<string, unknown>
+
 type AgentRunInput = {
   readonly prompt: string
   readonly policy: (call: ToolCallRequest) => PolicyDecision
   readonly limits: AgentLimits
+  readonly outputSchema: JsonSchema | null
 }
 
 type AgentMessage = {
@@ -42,6 +45,7 @@ class Agent extends Context.Tag('veto/Agent')<Agent, AgentService>() {}
 export {
   type ToolCallRequest,
   type AgentLimits,
+  type JsonSchema,
   type AgentRunInput,
   type AgentMessage,
   type AgentDenial,

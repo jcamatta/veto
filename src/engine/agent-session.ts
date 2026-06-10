@@ -1,13 +1,18 @@
-import { Chunk, Effect, Stream } from 'effect'
-import { resultText } from '../core/agent-output.js'
-import { parseFindings } from '../core/findings-parse.js'
+import { Chunk, Effect, JSONSchema, Stream } from 'effect'
+import {
+  resultText,
+  structuredOutput,
+  structuredRetriesExhausted
+} from '../core/agent-output.js'
+import { parseFindings, structuredFindings } from '../core/findings-parse.js'
 import { appendParseRetry } from '../core/prompt.js'
-import { type Result, isOk } from '../core/result.js'
-import type {
-  AgentUnavailable,
-  FindingsParseError
+import { type Result, err, isOk } from '../core/result.js'
+import {
+  findingsParseError,
+  type AgentUnavailable,
+  type FindingsParseError
 } from '../domain/errors.js'
-import type { ModelFindings } from '../domain/finding.js'
+import { ModelFindings } from '../domain/finding.js'
 import {
   AgentEvent,
   ToolCallDenied,
@@ -42,6 +47,11 @@ type SessionOutcome = {
 type ParsedSession = {
   readonly result: Result<ModelFindings, FindingsParseError>
   readonly events: readonly ReviewEvent[]
+  readonly structured: boolean
+}
+
+const findingsSchema: Record<string, unknown> = {
+  ...JSONSchema.make(ModelFindings)
 }
 
 const toEvent =
@@ -69,7 +79,8 @@ const collectEvents = (
         .run({
           prompt: input.prompt,
           policy: input.policy,
-          limits: { maxTurns: input.maxTurns }
+          limits: { maxTurns: input.maxTurns },
+          outputSchema: findingsSchema
         })
         .pipe(
           Stream.map(toEvent(input.key.reviewer)),
@@ -86,15 +97,30 @@ const rawMessages = (events: Chunk.Chunk<ReviewEvent>): readonly unknown[] =>
     event._tag === 'AgentEvent' ? [event.raw] : []
   )
 
+const parseSession = (chunk: Chunk.Chunk<ReviewEvent>): ParsedSession => {
+  const raws = rawMessages(chunk)
+  const structured = structuredOutput(raws)
+  const exhausted = structuredRetriesExhausted(raws)
+  const result = exhausted
+    ? err(
+        findingsParseError(
+          'structured output failed validation after model retries'
+        )
+      )
+    : structured === undefined
+      ? parseFindings(resultText(raws))
+      : structuredFindings(structured)
+  return {
+    result,
+    events: Chunk.toReadonlyArray(chunk),
+    structured: exhausted || structured !== undefined
+  }
+}
+
 const sessionFindings = (
   input: SessionInput
 ): Effect.Effect<ParsedSession, AgentUnavailable, Agent | RunStore> =>
-  collectEvents(input).pipe(
-    Effect.map((chunk) => ({
-      result: parseFindings(resultText(rawMessages(chunk))),
-      events: Chunk.toReadonlyArray(chunk)
-    }))
-  )
+  collectEvents(input).pipe(Effect.map(parseSession))
 
 const retrySession = ({
   input,
@@ -126,12 +152,14 @@ const runSession = (
     Effect.flatMap((first) =>
       isOk(first.result)
         ? Effect.succeed({ model: first.result.value, events: first.events })
-        : retrySession({ input, error: first.result.error }).pipe(
-            Effect.map((second) => ({
-              model: second.model,
-              events: [...first.events, ...second.events]
-            }))
-          )
+        : first.structured
+          ? Effect.fail(first.result.error)
+          : retrySession({ input, error: first.result.error }).pipe(
+              Effect.map((second) => ({
+                model: second.model,
+                events: [...first.events, ...second.events]
+              }))
+            )
     )
   )
 

@@ -89,7 +89,15 @@ const buildOptions = (input: {
   allowedTools: [...staticTools],
   maxTurns: input.run.limits.maxTurns,
   settingSources: [],
-  canUseTool: input.canUseTool
+  canUseTool: input.canUseTool,
+  ...(input.run.outputSchema === null
+    ? {}
+    : {
+        outputFormat: {
+          type: 'json_schema' as const,
+          schema: input.run.outputSchema
+        }
+      })
 })
 
 const openStream = (input: {

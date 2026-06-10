@@ -15,6 +15,17 @@ const decodeFindings = Schema.decodeUnknownEither(
   Schema.parseJson(ModelFindings)
 )
 
+const decodeStructured = Schema.decodeUnknownEither(ModelFindings)
+
+const structuredFindings = (
+  value: unknown
+): Result<ModelFindings, FindingsParseError> => {
+  const attempt = decodeStructured(value)
+  return Either.isRight(attempt)
+    ? ok(attempt.right)
+    : err(findingsParseError(attempt.left.message))
+}
+
 const stripTrailingFence = (text: string): string =>
   text.trimEnd().replace(/```$/, '')
 
@@ -67,4 +78,4 @@ const parseFindings = (
     : ok(found)
 }
 
-export { parseFindings }
+export { parseFindings, structuredFindings }

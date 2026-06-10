@@ -26,7 +26,8 @@ const allowReads: AgentRunInput['policy'] = (call) =>
 const runInput = (policy: AgentRunInput['policy']): AgentRunInput => ({
   prompt: 'review this diff',
   policy,
-  limits: { maxTurns: 15 }
+  limits: { maxTurns: 15 },
+  outputSchema: { type: 'object' }
 })
 
 const decideWith = (
@@ -92,10 +93,30 @@ describe('sdkAgent', () => {
           tools: ['Read', 'Grep', 'Glob'],
           allowedTools: ['Read', 'Grep', 'Glob'],
           maxTurns: 15,
-          settingSources: []
+          settingSources: [],
+          outputFormat: { type: 'json_schema', schema: { type: 'object' } }
         }
       }
     })
+  })
+
+  it('omits outputFormat when no output schema is requested', async () => {
+    const queryFn: QueryFn = (params) => ({
+      [Symbol.asyncIterator]: async function* () {
+        await Promise.resolve()
+        yield params
+      }
+    })
+    const items = await collect(queryFn, {
+      ...runInput(allowReads),
+      outputSchema: null
+    })
+    const first = items[0]
+    expect(first?._tag).toBe('AgentMessage')
+    if (first?._tag === 'AgentMessage') {
+      const raw = first.raw as QueryParams
+      expect('outputFormat' in raw.options).toBe(false)
+    }
   })
 
   it('allows policy-approved tool calls without emitting denials', async () => {

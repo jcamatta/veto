@@ -82,13 +82,16 @@ added, edited, renamed, or deleted.**
 - `src/core/projection.ts` — `buildProjection`: `RunState` + timestamp + git
   head/branch → `LatestProjection` (the `latest.json` shape), blocking derived
   from findings.
-- `src/core/agent-output.ts` — `resultText`: pull the final result text out of
-  the raw agent message stream (last message shaped
-  `{ type: 'result', result: string }`).
-- `src/core/findings-parse.ts` — `parseFindings`: locate and decode the
-  trailing strict-JSON findings object in the agent's result text
-  (`Result<ModelFindings, FindingsParseError>`; tolerates prose before the
-  JSON and a trailing markdown fence).
+- `src/core/agent-output.ts` — pull the final result out of the raw agent
+  message stream: `resultText` (last `{ type: 'result', result }`),
+  `structuredOutput` (the last result message's validated
+  `structured_output`), and `structuredRetriesExhausted` (the
+  `error_max_structured_output_retries` subtype).
+- `src/core/findings-parse.ts` — decode findings from agent output:
+  `parseFindings` (locate the trailing strict-JSON object in result text;
+  tolerates prose and a trailing fence) and `structuredFindings` (decode an
+  already-parsed structured-output value); both
+  `Result<ModelFindings, FindingsParseError>`.
 - `src/core/agent-stats.ts` — `emptyStats`, `accumulateMessage`, and
   `bumpDenials`: fold raw agent messages into `ReviewerStats` (usage, cost,
   turns, duration from result messages; tool_use counts from assistant
@@ -108,9 +111,10 @@ added, edited, renamed, or deleted.**
 - `src/ports/git.ts` — the `Git` port: `GitService` (stagedDiff, head, branch,
   stagedFile) failing with `GitError`, plus the `Git` Context tag.
 - `src/ports/agent.ts` — the `Agent` port: `AgentRunInput` (prompt, injected
-  tool-call policy, limits), the `AgentStreamItem` union
-  (`AgentMessage`/`AgentDenial`), and `AgentService.run` returning a `Stream`
-  failing with `AgentUnavailable`; the `Agent` Context tag.
+  tool-call policy, limits, and an opaque `outputSchema` JSON schema or
+  null), the `AgentStreamItem` union (`AgentMessage`/`AgentDenial`), and
+  `AgentService.run` returning a `Stream` failing with `AgentUnavailable`;
+  the `Agent` Context tag.
 - `src/ports/run-store.ts` — the `RunStore` port: appendEvent (per key +
   attempt), baseline/record read-write, writeProjections (projection +
   rendered markdown), and prune (keep last N heads); the `RunStore` tag.
@@ -141,7 +145,8 @@ added, edited, renamed, or deleted.**
 - `src/adapters/sdk-agent.ts` — the `Agent` port via
   `@anthropic-ai/claude-agent-sdk` `query()` wrapped with
   `Stream.fromAsyncIterable`: read-only allowlist (Read/Grep/Glob), `maxTurns`,
-  `settingSources: []`, repo-root `cwd`; the injected policy runs in the SDK's
+  `settingSources: []`, repo-root `cwd`, and `outputFormat` (json_schema)
+  when an output schema is requested; the injected policy runs in the SDK's
   `canUseTool` callback, denials are queued and interleaved into the stream as
   `AgentDenial`; every failure maps to `AgentUnavailable`; the query function
   is injectable so tests spend zero credits.
@@ -160,9 +165,11 @@ added, edited, renamed, or deleted.**
   context, key, attempt, baseline, hashes), `appendEvents` (the event-log
   side channel into `RunStore`), and the `RunStarted` event constructor.
 - `src/engine/agent-session.ts` — one fresh agent session: stream items
-  mapped to `AgentEvent`/`ToolCallDenied` and tapped to the store, result
-  text decoded into `ModelFindings` with exactly one retry (schema error
-  appended to the prompt).
+  mapped to `AgentEvent`/`ToolCallDenied`, tapped to the store, and returned
+  for the reducer fold; the findings JSON schema is requested via the port's
+  `outputSchema`, structured output is preferred when present (no engine
+  retry — the backend already validated), and the text-parse path keeps
+  exactly one retry with the schema error appended.
 - `src/engine/reviewer-conclude.ts` — the successful-session tail:
   fingerprint findings, filter suppressions, diff against the baseline,
   emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist

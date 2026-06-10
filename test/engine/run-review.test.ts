@@ -383,6 +383,70 @@ describe('runReview — fail-open (acceptance 6)', () => {
   })
 })
 
+describe('runReview — structured outputs', () => {
+  it('passes the findings JSON schema to the agent', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    await execute({ agent: scripted.layer })
+    const calls = await Effect.runPromise(scripted.calls)
+    expect(calls[0]?.outputSchema).toMatchObject({ type: 'object' })
+    expect(JSON.stringify(calls[0]?.outputSchema)).toContain('severity')
+  })
+
+  it('decodes findings from structured_output without text parsing', async () => {
+    const scripted = scriptedAgent([
+      {
+        _tag: 'Say',
+        raw: {
+          type: 'result',
+          subtype: 'success',
+          structured_output: { findings: [errorFinding] }
+        }
+      }
+    ])
+    const { code, emitted } = await execute({ agent: scripted.layer })
+    expect(code).toBe(1)
+    expect(emitted[0]?.projection.reviewers[0]?.findings).toHaveLength(1)
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(1)
+  })
+
+  it('fails open without a second session when structured retries are exhausted', async () => {
+    const scripted = scriptedAgent([
+      {
+        _tag: 'Say',
+        raw: {
+          type: 'result',
+          subtype: 'error_max_structured_output_retries',
+          is_error: true
+        }
+      }
+    ])
+    const { code, emitted } = await execute({ agent: scripted.layer })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(1)
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
+    expect(emitted[0]?.projection.reviewers[0]?.failure).toContain(
+      'structured output'
+    )
+  })
+
+  it('fails open without a retry when structured output misses the schema', async () => {
+    const scripted = scriptedAgent([
+      {
+        _tag: 'Say',
+        raw: {
+          type: 'result',
+          subtype: 'success',
+          structured_output: { findings: [{ severity: 'fatal' }] }
+        }
+      }
+    ])
+    const { code, emitted } = await execute({ agent: scripted.layer })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(1)
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
+  })
+})
+
 describe('runReview — tool-call policy (acceptance 8)', () => {
   it('logs denied tool calls as ToolCallDenied events', async () => {
     const scripted = scriptedAgent([
