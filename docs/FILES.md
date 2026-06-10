@@ -46,8 +46,9 @@ added, edited, renamed, or deleted.**
 - `src/core/hashing.ts` — the injected `HashFn` type plus `diffHash`,
   `configHash`, and the Layer-1 `replayKey` (hash of both hashes); the actual
   sha1 lives in an adapter so the core stays free of `node:crypto`.
-- `src/core/fingerprint.ts` — `normalizeSnippet` (strip line numbers and all
-  whitespace) and `fingerprintFinding`: ModelFinding →
+- `src/core/fingerprint.ts` — `normalizeSnippet` (strip leading line numbers
+  — digits followed by whitespace — then all whitespace; idempotent) and
+  `fingerprintFinding`: ModelFinding →
   `hash(reviewer + rule + file + normalizedMessage)` truncated to 12 hex chars.
 - `src/core/suppression.ts` — `parseSuppressions` (`.reviewer/ignore` text →
   `SuppressionList`, `#` comments allowed, `Result` with `ConfigError`) and
@@ -158,6 +159,32 @@ added, edited, renamed, or deleted.**
   gather git context, run reviewers with concurrency 4, fold events through
   the reducer, write projections, prune to 10 heads, report, and derive the
   exit code.
+
+## src/cli/ — the user-facing command (thin command/query dispatcher, SPEC §3)
+
+- `src/cli.ts` — the executable entry point bundled to `dist/cli.js`: wires
+  `makeCli` to the real `process` (argv, `process.exit`) and the
+  `NodeContext` platform layer, run via `NodeRuntime.runMain`.
+- `src/cli/options.ts` — the `@effect/cli` surface: positional config
+  dir/file, repeatable `--config`, `--staged`, `--format=pretty|json`
+  (default pretty), `--no-cache`, with help descriptions; the decoded
+  `CliArgs` type.
+- `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
+  via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
+  `GitError` ("not a git repository", CLI misuse).
+- `src/cli/prepare.ts` — `prepare`: `CliArgs` + repo root → the engine's
+  `RunReviewInput` plus the runs dir; resolves targets (positional +
+  `--config`, none → `ConfigError`), loads configs, anchors
+  `<base>/runs` and the `<base>/ignore` suppression file next to the
+  configs, and fills `RunSettings` (sha1, default timeout).
+- `src/cli/layers.ts` — `productionLayers`: merges the production adapters
+  (command git, sdk agent, fs run store, terminal reporter, system clock)
+  for a given repo root + runs dir; optional `queryFn` pass-through so CLI
+  tests spend zero credits.
+- `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
+  prepare → `runReview` → exit with the run's code) plus exit-code mapping
+  per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
+  through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
 ## src/domain/ — Schema types at every trust boundary (SPEC §10)
 
@@ -276,6 +303,16 @@ added, edited, renamed, or deleted.**
   (unavailable, double parse failure, timeout) with retry recovery,
   tool-call denials incl. strict scope, and runtime-mode rejection
   (acceptance criteria 2–9).
+- `test/cli/repo-root.test.ts` — toplevel resolution from the repo root and
+  a subdirectory of real throwaway repos, `GitError` outside a repo.
+- `test/cli/prepare.test.ts` — run-input assembly from a positional dir vs
+  `--config` files (runs-dir anchoring, merge), flag propagation, ignore-file
+  suppressions, and `ConfigError`s (no targets, missing path, bad
+  fingerprints).
+- `test/cli/command.test.ts` — end-to-end CLI runs in real temp git repos
+  with an injected fake SDK query (zero credits): exit 0 clean / warnings,
+  exit 1 on error findings, projections written, repeated `--config`, exit 2
+  misuse (no repo, missing config, no targets, invalid flag), `--help`.
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.

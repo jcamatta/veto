@@ -102,7 +102,31 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     projections).
   - Fail-open writes no `record.json`/`baseline.json` (a failed run must
     not feed the replay cache); only the `ReviewerFailed` event is logged.
-- [ ] Phase 7 — CLI.
+- [x] **Phase 7 — done, awaiting review/commit.** The CLI in `src/cli/`
+  (`options`, `repo-root`, `prepare`, `layers`, `command`) plus the
+  `src/cli.ts` entry point; `tsup` build verified (`dist/cli.js` runs:
+  skip-path review exit 0, `--help`/`--version` exit 0, bad flag exit 2);
+  gates green (231 tests, 99.2% line / 99.9% type coverage).
+  Implementation notes / deviations:
+  - Exit-code mapping (SPEC §3) lives in `makeCli`: handler errors
+    (`ConfigError`, `GitError` from repo-root resolution) and
+    `@effect/cli` validation errors all map to exit 2 through an injected
+    `exit` effect; production exits via `process.exit` (no `process.exitCode`
+    mutation — `functional/immutable-data` stays clean).
+  - `--staged` is accepted but is a documented no-op: v1 always reviews the
+    staged diff (the help text says so).
+  - The `.reviewer/ignore` suppression file and the `runs/` dir are anchored
+    next to the configs: the positional directory when given, else the
+    first `--config` file's directory.
+  - `repoRoot` comes from `git rev-parse --show-toplevel` (a CLI-local
+    helper, not a `Git` port method) so invocation from a subdirectory
+    resolves containment and the agent cwd correctly.
+  - `makeCli` takes injectable `cwd`/`queryFn`/`exit`, so the CLI is tested
+    end-to-end in temp git repos with a fake SDK query (zero credits).
+  - Drive-by fix surfaced by a fast-check seed: `normalizeSnippet` was not
+    idempotent (a bare number like `"0 0"` was eaten as a "line number" on
+    re-normalization); the line-number regex now requires trailing
+    whitespace, making normalization idempotent by construction.
 - [ ] Phase 8 — hardening, dogfood & acceptance.
 
 ## Phase 1 — Scaffold & tooling
