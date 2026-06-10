@@ -68,10 +68,6 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
-- `docs/plans/claude-code-preset.md` — the `claude_code` preset system
-  prompt (PLAN.md Phase 9 task 5): `buildPrompt` splits system vs user text,
-  the `Agent` port carries the system text as opaque data, the SDK adapter
-  sends it via the preset with `excludeDynamicSections: true`.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
