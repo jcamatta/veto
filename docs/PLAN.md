@@ -128,7 +128,7 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     idempotent (a bare number like `"0 0"` was eaten as a "line number" on
     re-normalization); the line-number regex now requires trailing
     whitespace, making normalization idempotent by construction.
-- [x] **Phase 8 — done, pending review.** All 9 acceptance criteria walked in
+- [x] **Phase 8 — done, committed** (`49de9f0`). All 9 acceptance criteria walked in
   [ACCEPTANCE.md](ACCEPTANCE.md) (automated tests + manual real-model runs in
   a throwaway repo: blocking find, replay, suppression-on-replay, baseline
   resolution); dogfood wired (`.reviewer/architect.yaml`, build + veto run in
@@ -140,6 +140,7 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     itself; the skip-path run costs ~1.3 s, a real review ~16 s.
   - Criterion 2 measured as marginal cost: a second non-matching reviewer
     adds ~20 ms to the run (< 100 ms), zero model calls.
+- [ ] Phase 9 — observability, SDK upgrades & generalization (v1.1).
 
 ## Phase 1 — Scaffold & tooling
 
@@ -264,6 +265,59 @@ Goal: v1 done per SPEC §14.
   `.husky/pre-commit` (after eslint), CLAUDE.md feedback-loop line.
 - README (install, usage, config format, escape hatches).
 - Coverage and type-coverage audits; final FILES.md sweep.
+
+## Phase 9 — Observability, SDK upgrades & generalization (v1.1)
+
+Motivated by the first real dogfood runs (Phase 8): a pluma review hit the
+90 s timeout while rate-limit-throttled mid-thinking, and diagnosing it
+required reading raw JSONL. Five tasks, each shippable and reviewable on its
+own; SPEC.md is updated alongside each task it touches.
+
+The guiding constraint for every task: **the `Agent` port stays
+backend-agnostic.** Reviewer configs carry opaque data (`model`, `effort`);
+only the adapter interprets it. A future codex/local-model reviewer is a new
+adapter implementing the same port — nothing in core/domain/engine may
+reference SDK concepts.
+
+1. **Run-summary observability** (first — everything else is tuned by what
+   this reveals). A pure calculation folds the agent stream into per-reviewer
+   stats: turns, input/output/cache tokens, cost (the SDK result message
+   carries `usage`/`total_cost_usd`/`num_turns`/`duration_ms`), tool calls,
+   denials. Persisted in `record.json`, exposed per reviewer in
+   `latest.json`/`latest.md`, one stats line in the pretty output. Fail-open
+   outcomes name their cause (timeout / unavailable / parse) instead of a
+   bare `unavailable`. Spec: §6 record.json, §9 projection shape.
+2. **Structured outputs.** The SDK adapter passes
+   `outputFormat: { type: "json_schema", schema }` built from
+   `ModelFindings`; the SDK validates and retries internally and delivers
+   `structured_output` on the result message. The engine prefers structured
+   output when the stream provides it and falls back to text parsing
+   (keeps non-SDK backends viable); `error_max_structured_output_retries`
+   maps to `FindingsParseError` → fail-open. The hand-rolled second retry
+   session goes away. Spec: §9.
+3. **Per-reviewer knobs + `--timeout`.** Optional `ReviewerConfig` fields
+   `model` (opaque string), `effort`, `maxTurns`, `timeoutMs`, flowing
+   through `AgentRunInput` as data; the SDK adapter maps them to query
+   options, other adapters interpret or ignore. CLI `--timeout` overrides
+   the default for all reviewers. Recommended default documented and used in
+   our own config: `model: claude-sonnet-4-6`, `effort: medium` (cheap,
+   fast, less runaway thinking on a $20 plan). Spec: §3, §4, §8.
+4. **Rename `.reviewer` → `.veto`.** The tool policy denies the
+   settings-provided runs dir rather than the hardcoded `.reviewer/runs/`
+   name; dogfood dir, hook line, CLAUDE.md feedback line, README, SPEC all
+   move to `.veto/`. The CLI already accepts any directory. Spec: §3, §6, §8.
+5. **`claude_code` preset system prompt.** `buildPrompt` splits system vs
+   user sections; `AgentRunInput` carries the system text separately; the
+   SDK adapter sends `systemPrompt: { type: "preset", preset:
+   "claude_code", append: <system>, excludeDynamicSections: true }` (the
+   docs endorse the preset for unattended diff review; the flag keeps the
+   prompt cacheable across machines). `settingSources` stays `[]` — no
+   CLAUDE.md/AGENTS.md auto-injection, because any input that changes review
+   output must be part of the Layer-1 cache key. Spec: §5, §7.
+
+Out of scope for this phase (v2 candidates): codebase-graph custom tool via
+`@tool`/MCP (measure first — the timeout run never reached its tools),
+ag-ui event adapter.
 
 ---
 
