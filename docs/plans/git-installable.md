@@ -47,8 +47,8 @@ context where no `.git` exists.
 
 ## Steps
 
-- [ ] 1. `scripts/prepare.mjs` + `package.json` `prepare` swap.
-- [ ] 2. Run the verification list above and record results in the PR body.
-- [ ] 3. Docs: README Install section gains the GitHub install command
+- [x] 1. `scripts/prepare.mjs` + `package.json` `prepare` swap.
+- [x] 2. Run the verification list above and record results in the PR body.
+- [x] 3. Docs: README Install section gains the GitHub install command
   (with a note on pinning `#<tag|commit>`), FILES.md entries for
   `scripts/prepare.mjs` and the `package.json` description update.
