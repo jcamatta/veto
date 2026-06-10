@@ -1,4 +1,4 @@
-import { Chunk, Effect, JSONSchema, Stream } from 'effect'
+import { Chunk, Effect, Stream } from 'effect'
 import {
   resultText,
   structuredOutput,
@@ -34,6 +34,7 @@ type SessionInput = {
   readonly maxTurns: number
   readonly model: string | null
   readonly effort: AgentRunInput['effort']
+  readonly outputSchema: Record<string, unknown>
 }
 
 type RetrySession = {
@@ -50,10 +51,6 @@ type ParsedSession = {
   readonly result: Result<ModelFindings, FindingsParseError>
   readonly events: readonly ReviewEvent[]
   readonly structured: boolean
-}
-
-const findingsSchema: Record<string, unknown> = {
-  ...JSONSchema.make(ModelFindings)
 }
 
 const toEvent =
@@ -82,7 +79,7 @@ const collectEvents = (
           prompt: input.prompt,
           policy: input.policy,
           limits: { maxTurns: input.maxTurns },
-          outputSchema: findingsSchema,
+          outputSchema: input.outputSchema,
           model: input.model,
           effort: input.effort
         })

@@ -1,4 +1,5 @@
 import { DateTime, Duration, Effect } from 'effect'
+import { findingsSchemaFor } from '../core/findings-schema.js'
 import { scopeFiles } from '../core/glob-scope.js'
 import { configHash, diffHash } from '../core/hashing.js'
 import { buildPrompt } from '../core/prompt.js'
@@ -128,7 +129,8 @@ const liveSession = ({ run, startedAt }: LiveSession) =>
     policy: policyFor(run),
     maxTurns: run.reviewer.config.maxTurns ?? defaultMaxTurns,
     model: run.reviewer.config.model ?? null,
-    effort: run.reviewer.config.effort ?? null
+    effort: run.reviewer.config.effort ?? null,
+    outputSchema: findingsSchemaFor(run.reviewer.config.rules)
   }).pipe(
     Effect.timeout(
       Duration.millis(

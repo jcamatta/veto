@@ -91,6 +91,10 @@ added, edited, renamed, or deleted.**
 - `src/core/rules.ts` — `ruleKey` / `ruleText` / `ruleKeys`: project a
   `ReviewerRule` (plain string or `{id, rule}`) onto the key findings cite
   and the prose the prompt renders.
+- `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
+  JSON schema with the `rule` property constrained to the reviewer's rule
+  keys (ids, or literal texts for plain rules), so the backend validates
+  rule citations instead of trusting the model to echo them.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
   separator unification, dot-segment collapsing, drive-letter lowering,
   `isAbsolutePath`, and `resolveWithin` (resolve against a root).
@@ -288,6 +292,9 @@ added, edited, renamed, or deleted.**
   no-baseline and clean-run cases.
 - `test/core/rules.test.ts` — rule-helper projections for plain and
   identified rules (key, text, mixed-list keys).
+- `test/core/findings-schema.test.ts` — rule-enum injection into the
+  findings schema for identified, plain, and mixed rules; rest of the
+  schema preserved.
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
   Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
