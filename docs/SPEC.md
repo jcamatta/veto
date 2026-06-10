@@ -136,11 +136,19 @@ systemPrompt: |
   You are a software architect reviewing a staged diff before commit...
 rules:                        # natural-language guidance the model interprets
   - keep domain logic out of UI components
-  - no cross-layer imports
+  - id: no-cross-layer        # optional stable id (kebab-case, unique per config)
+    rule: no cross-layer imports
   - new endpoints must not duplicate existing operations (search before flagging)
 ```
 
 Design rules for configs:
+
+- A rule is a plain string or `{id, rule}`. With an id, the prompt renders
+  `[no-cross-layer] no cross-layer imports`, findings cite the **id** in their
+  `rule` field (the structured-output schema constrains `rule` to an enum of the
+  config's rule keys, so the backend validates the citation), and fingerprints
+  hash the id — so rewording the rule text never breaks committed suppressions
+  or the findings baseline. Plain rules keep citing their literal text.
 
 - Rules are **judgment** rules only. If eslint could enforce it deterministically
   (naming, import boundaries, default exports), it does **not** belong here — it belongs

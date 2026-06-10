@@ -76,12 +76,18 @@ systemPrompt: |
   You are a software architect reviewing a staged diff before commit...
 rules:                        # natural-language judgment rules
   - keep domain logic out of UI components
-  - no cross-layer imports
+  - id: no-cross-layer        # optional stable id (kebab-case, unique)
+    rule: no cross-layer imports
   - new endpoints must not duplicate existing operations (search before flagging)
 ```
 
 Keep **judgment** rules only. If eslint can enforce it deterministically, it
 belongs in eslint, which runs first in the hook.
+
+Give rules an `id` when you expect to reword them: findings cite the id
+(enforced by the structured-output schema), and suppression fingerprints
+hash the id — so editing the rule text never invalidates `.veto/ignore`
+entries or the findings baseline.
 
 On a personal subscription, `model: claude-sonnet-4-6` with `effort: medium`
 is the recommended default — cheaper, faster, and far less likely to spend
