@@ -67,10 +67,14 @@ const appendParseRetry = ({ prompt, message }: RetryInput): string =>
     'with nothing before or after it.'
   ].join('\n\n')
 
-const buildPrompt = ({ config, diff, baseline }: PromptInput): string =>
-  [
-    config.systemPrompt,
-    rulesSection(config),
+type ReviewPrompt = {
+  readonly system: string
+  readonly user: string
+}
+
+const buildPrompt = ({ config, diff, baseline }: PromptInput): ReviewPrompt => ({
+  system: [config.systemPrompt, rulesSection(config)].join('\n\n'),
+  user: [
     filesSection(diff),
     diffSection(diff),
     baselineSection(baseline),
@@ -78,5 +82,12 @@ const buildPrompt = ({ config, diff, baseline }: PromptInput): string =>
   ]
     .filter((section): section is string => section !== null)
     .join('\n\n')
+})
 
-export { type PromptInput, type RetryInput, buildPrompt, appendParseRetry }
+export {
+  type PromptInput,
+  type ReviewPrompt,
+  type RetryInput,
+  buildPrompt,
+  appendParseRetry
+}

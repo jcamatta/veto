@@ -183,12 +183,12 @@ describe('runReview — completed runs', () => {
     expect(emitted[0]?.projection.reviewers[0]?.findings).toHaveLength(1)
   })
 
-  it('sends the full prompt with rules, files, and diff to the agent', async () => {
+  it('sends the rules as system text and the diff as the user prompt', async () => {
     const scripted = scriptedAgent([sayResult([])])
     await execute({ agent: scripted.layer })
     const calls = await Effect.runPromise(scripted.calls)
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.prompt).toContain('no cross-layer imports')
+    expect(calls[0]?.system).toContain('no cross-layer imports')
     expect(calls[0]?.prompt).toContain(repo.diff.diffText)
     expect(calls[0]?.limits.maxTurns).toBe(15)
     expect(calls[0]?.model).toBeNull()

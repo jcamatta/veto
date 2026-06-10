@@ -291,6 +291,18 @@ surrounding files, greps for duplicate endpoints, reads `docs/adr/**`. This is t
 "holistic view" — no indexing infrastructure. Config `paths` tell it which staged files
 are in its scope.
 
+**Prompt assembly: system vs user.** `buildPrompt` splits the prompt in two. The
+reviewer's persona (`systemPrompt`) and its rules are the **system text**; the SDK
+adapter sends it as `systemPrompt: { type: 'preset', preset: 'claude_code',
+append: <system>, excludeDynamicSections: true }` — riding the preset tuned for
+unattended repo work while keeping the prompt static and cacheable across machines.
+The staged file list, the scoped diff, the optional Layer-2 baseline, and the
+strict-JSON instruction form the **user prompt** (the parse-retry suffix appends
+there too). `settingSources` stays `[]` — no CLAUDE.md/AGENTS.md auto-injection,
+because any input that changes review output must be part of the Layer-1 cache
+key (§5). Other backends are free to interpret or ignore the system text — the
+`Agent` port carries it as opaque data.
+
 ---
 
 ## 8. Restriction rings (decided: enforce in code, prompts are not law)

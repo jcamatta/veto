@@ -35,12 +35,19 @@ const baseline = {
 }
 
 describe('buildPrompt', () => {
-  it('includes system prompt, rules, files, and diff', () => {
+  it('puts the persona and rules in the system text', () => {
     const prompt = buildPrompt({ config, diff, baseline: null })
-    expect(prompt).toContain(config.systemPrompt)
-    expect(prompt).toContain('- keep domain logic out of UI components')
-    expect(prompt).toContain('- src/a.ts')
-    expect(prompt).toContain(diff.diffText)
+    expect(prompt.system).toContain(config.systemPrompt)
+    expect(prompt.system).toContain('- keep domain logic out of UI components')
+    expect(prompt.user).not.toContain(config.systemPrompt)
+    expect(prompt.user).not.toContain('keep domain logic out of UI components')
+  })
+
+  it('puts the staged files and diff in the user text', () => {
+    const prompt = buildPrompt({ config, diff, baseline: null })
+    expect(prompt.user).toContain('- src/a.ts')
+    expect(prompt.user).toContain(diff.diffText)
+    expect(prompt.system).not.toContain(diff.diffText)
   })
 
   it('renders identified rules with a bracketed id prefix', () => {
@@ -55,37 +62,40 @@ describe('buildPrompt', () => {
       diff,
       baseline: null
     })
-    expect(prompt).toContain('- [no-cross-layer] no cross-layer imports')
-    expect(prompt).toContain('- plain rule')
+    expect(prompt.system).toContain('- [no-cross-layer] no cross-layer imports')
+    expect(prompt.system).toContain('- plain rule')
   })
 
-  it('always ends with the strict JSON instruction', () => {
+  it('always ends the user text with the strict JSON instruction', () => {
     const prompt = buildPrompt({ config, diff, baseline: null })
-    expect(prompt).toContain('{"findings": []}')
-    expect(prompt.indexOf('"severity"')).toBeGreaterThan(
-      prompt.indexOf(diff.diffText)
+    expect(prompt.user).toContain('{"findings": []}')
+    expect(prompt.user.indexOf('"severity"')).toBeGreaterThan(
+      prompt.user.indexOf(diff.diffText)
     )
   })
 
   it('omits the baseline section without a baseline', () => {
     const prompt = buildPrompt({ config, diff, baseline: null })
-    expect(prompt).not.toContain('Previous findings')
+    expect(prompt.user).not.toContain('Previous findings')
   })
 
   it('injects previous findings and Layer-2 instructions with a baseline', () => {
     const prompt = buildPrompt({ config, diff, baseline })
-    expect(prompt).toContain('Previous findings (attempt 2)')
-    expect(prompt).toContain('a94f3c21e0b7')
-    expect(prompt).toContain('state whether it is now resolved')
-    expect(prompt).toContain('No flip-flopping')
+    expect(prompt.user).toContain('Previous findings (attempt 2)')
+    expect(prompt.user).toContain('a94f3c21e0b7')
+    expect(prompt.user).toContain('state whether it is now resolved')
+    expect(prompt.user).toContain('No flip-flopping')
   })
 })
 
 describe('appendParseRetry', () => {
-  it('appends the validation error after the original prompt', () => {
+  it('appends the validation error after the original user prompt', () => {
     const prompt = buildPrompt({ config, diff, baseline: null })
-    const retried = appendParseRetry({ prompt, message: 'Expected "error"' })
-    expect(retried.startsWith(prompt)).toBe(true)
+    const retried = appendParseRetry({
+      prompt: prompt.user,
+      message: 'Expected "error"'
+    })
+    expect(retried.startsWith(prompt.user)).toBe(true)
     expect(retried).toContain('failed validation: Expected "error"')
     expect(retried).toContain('Emit only a single valid JSON object')
   })

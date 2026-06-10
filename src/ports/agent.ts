@@ -16,6 +16,7 @@ type JsonSchema = Record<string, unknown>
 
 type AgentRunInput = {
   readonly prompt: string
+  readonly system: string
   readonly policy: (call: ToolCallRequest) => PolicyDecision
   readonly limits: AgentLimits
   readonly outputSchema: JsonSchema | null

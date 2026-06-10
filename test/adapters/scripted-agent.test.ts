@@ -23,6 +23,7 @@ const policy: AgentRunInput['policy'] = (call) =>
 
 const input: AgentRunInput = {
   prompt: 'review this diff',
+  system: 'You are a reviewer.',
   policy,
   limits: { maxTurns: 15 },
   outputSchema: null,

@@ -25,6 +25,7 @@ const allowReads: AgentRunInput['policy'] = (call) =>
 
 const runInput = (policy: AgentRunInput['policy']): AgentRunInput => ({
   prompt: 'review this diff',
+  system: 'You are a reviewer.',
   policy,
   limits: { maxTurns: 15 },
   outputSchema: { type: 'object' },
@@ -97,6 +98,28 @@ describe('sdkAgent', () => {
           maxTurns: 15,
           settingSources: [],
           outputFormat: { type: 'json_schema', schema: { type: 'object' } }
+        }
+      }
+    })
+  })
+
+  it('sends the system text on the claude_code preset, cacheable', async () => {
+    const queryFn: QueryFn = (params) => ({
+      [Symbol.asyncIterator]: async function* () {
+        await Promise.resolve()
+        yield params
+      }
+    })
+    const items = await collect(queryFn, runInput(allowReads))
+    expect(items[0]).toMatchObject({
+      raw: {
+        options: {
+          systemPrompt: {
+            type: 'preset',
+            preset: 'claude_code',
+            append: 'You are a reviewer.',
+            excludeDynamicSections: true
+          }
         }
       }
     })
