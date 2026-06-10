@@ -128,7 +128,18 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     idempotent (a bare number like `"0 0"` was eaten as a "line number" on
     re-normalization); the line-number regex now requires trailing
     whitespace, making normalization idempotent by construction.
-- [ ] Phase 8 — hardening, dogfood & acceptance.
+- [x] **Phase 8 — done, pending review.** All 9 acceptance criteria walked in
+  [ACCEPTANCE.md](ACCEPTANCE.md) (automated tests + manual real-model runs in
+  a throwaway repo: blocking find, replay, suppression-on-replay, baseline
+  resolution); dogfood wired (`.reviewer/architect.yaml`, build + veto run in
+  `.husky/pre-commit`, CLAUDE.md feedback-loop line); README written; gates
+  green (231 tests, 99.2% line / 99.94% type coverage).
+  Implementation notes / deviations:
+  - The hook dogfoods via `npm run build && node dist/cli.js .reviewer/
+    --staged` (not `npx veto`) because the package is not installed into
+    itself; the skip-path run costs ~1.3 s, a real review ~16 s.
+  - Criterion 2 measured as marginal cost: a second non-matching reviewer
+    adds ~20 ms to the run (< 100 ms), zero model calls.
 
 ## Phase 1 — Scaffold & tooling
 

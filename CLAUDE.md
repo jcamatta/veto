@@ -14,6 +14,8 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
   `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
   `style`, `test`. Short, imperative, lowercase description; no trailing period;
   `!` for breaking changes. No `Co-authored-by` or other footers.
+- If a commit is blocked by the reviewer, read `.reviewer/runs/latest.json`
+  and fix the findings, then commit again.
 
 ## Code conventions (enforced by lint where possible)
 

@@ -24,9 +24,15 @@ added, edited, renamed, or deleted.**
   on lines/branches/functions/statements.
 - `tsup.config.ts` — build configuration: bundles `src/cli.ts` to ESM
   `dist/cli.js` with a node shebang.
+- `README.md` — user-facing documentation: install, CLI usage, exit codes,
+  config format, re-run behavior (replay + baseline), escape hatches,
+  outputs, sandboxing.
 - `.gitignore` — excludes node_modules, dist, coverage, logs, .env.
 - `.husky/pre-commit` — pre-commit gate: lint, typecheck, tests with coverage,
-  type coverage.
+  type coverage, then build + dogfood (`veto .reviewer/ --staged`).
+- `.reviewer/architect.yaml` — the dogfood reviewer config for this repo:
+  judgment rules (one file one responsibility, FILES.md currency, effects at
+  the edges, no duplication, behavior-focused tests) over `src`/`test`.
 
 ## docs/
 
@@ -34,6 +40,9 @@ added, edited, renamed, or deleted.**
   all decisions).
 - `docs/PLAN.md` — the phased implementation plan derived from the spec, with
   a status section tracking which phases are done (updated after every phase).
+- `docs/ACCEPTANCE.md` — the v1 acceptance walk: each SPEC §14 criterion
+  mapped to its automated tests plus the manual real-model verification
+  results, and the final quality-gate audit.
 - `docs/FILES.md` — this document.
 
 ## src/core/ — pure calculations (functional core, no `node:*`/git/SDK imports)
