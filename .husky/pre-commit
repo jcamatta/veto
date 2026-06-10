@@ -1,3 +1,4 @@
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 bash "$(dirname "$0")/check-branch.sh"
 bash "$(dirname "$0")/check-commit-size.sh"
 npm run lint
