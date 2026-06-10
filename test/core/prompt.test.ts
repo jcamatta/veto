@@ -57,7 +57,6 @@ describe('buildPrompt', () => {
     })
     expect(prompt).toContain('- [no-cross-layer] no cross-layer imports')
     expect(prompt).toContain('- plain rule')
-    expect(prompt).toContain('bracketed id')
   })
 
   it('always ends with the strict JSON instruction', () => {

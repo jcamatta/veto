@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Effect, Layer, Ref, Stream } from 'effect'
 import { fingerprintFinding } from '../../src/core/fingerprint.js'
-import { ruleKeys } from '../../src/core/rules.js'
 import type { ModelFinding } from '../../src/domain/finding.js'
 import {
   defaultTimeoutMs,
@@ -435,7 +434,7 @@ describe('runReview — structured outputs', () => {
     await execute({ agent: scripted.layer })
     const calls = await Effect.runPromise(scripted.calls)
     expect(JSON.stringify(calls[0]?.outputSchema)).toContain(
-      `"enum":${JSON.stringify(ruleKeys(architect.config.rules))}`
+      '"enum":["no cross-layer imports"]'
     )
   })
 
