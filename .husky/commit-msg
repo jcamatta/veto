@@ -7,3 +7,24 @@ if grep -Eiq "$forbidden" "$msg_file"; then
   echo "Remove Co-authored-by / Signed-off-by / 'Generated with' / similar attribution footers."
   exit 1
 fi
+
+subject="$(head -n1 "$msg_file")"
+
+# git-generated merge and revert subjects are exempt from the format check.
+case "$subject" in
+  "Merge "*|"Revert \""*) exit 0 ;;
+esac
+
+format='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9-]+\))?!?: [a-z0-9]'
+if ! printf '%s\n' "$subject" | grep -Eq "$format"; then
+  echo "Commit subject does not follow Conventional Commits."
+  echo "Expected <type>(<scope>)?: <description> with type in"
+  echo "build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
+  echo "(feat not feature, fix not bugfix) and a lowercase description."
+  exit 1
+fi
+
+if printf '%s\n' "$subject" | grep -Eq '\.$'; then
+  echo "Commit subject must not end with a period."
+  exit 1
+fi

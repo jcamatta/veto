@@ -10,7 +10,11 @@ added, edited, renamed, or deleted.**
   conventions, quality gates, documentation discipline.
 - `package.json` — package manifest: name `veto`, ESM, Node >= 20,
   `bin` entry, scripts (`build`, `test`, `coverage`, `lint`, `typecheck`,
-  `type-coverage`, `check`), dependencies.
+  `type-coverage`, `check`, `prepare` via `scripts/prepare.mjs`),
+  dependencies.
+- `scripts/prepare.mjs` — npm `prepare` script: builds `dist/` with tsup
+  always (so `npm i github:jcamatta/veto` yields a working package) and
+  installs husky hooks only in a real checkout (`.git` present).
 - `tsconfig.json` — TypeScript strict ESM (NodeNext) compiler configuration,
   `noEmit` (tsup handles builds), node types enabled for the adapters.
 - `eslint.config.js` — flat eslint config: typescript-eslint
@@ -18,10 +22,12 @@ added, edited, renamed, or deleted.**
   no-let, no-throw, no loops), style bans (no console, no inline comments, no
   default exports), a ban on all suppression directives (`eslint-disable*` via
   eslint-comments/no-use, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck` via
-  ban-ts-comment), hard size/complexity limits on `src/**`, and a ban on
+  ban-ts-comment), hard size/complexity limits on `src/**`, ignores for
+  build output and tooling (`dist`, `coverage`, `scripts`, config files),
+  and a ban on
   `node:*`/SDK imports inside `src/core|domain|ports` (hexagon purity).
 - `vitest.config.ts` — vitest configuration with v8 coverage and 80% thresholds
-  on lines/branches/functions/statements.
+  on lines/branches/functions/statements, plus the git-env setup file.
 - `tsup.config.ts` — build configuration: bundles `src/cli.ts` to ESM
   `dist/cli.js` with a node shebang.
 - `README.md` — user-facing documentation: install, CLI usage, exit codes,
@@ -36,9 +42,12 @@ added, edited, renamed, or deleted.**
   coverage, build + dogfood (`veto .veto/ --staged`).
 - `.husky/check-branch.sh` — rejects commits from `main`, a detached HEAD, or
   any branch not named per the Conventional Branch spec
-  (`<type>/<description>`); merge commits into `main` pass.
-- `.husky/commit-msg` — rejects attribution trailers (`Co-authored-by`,
-  `Signed-off-by`, `Generated with`, similar) in commit messages.
+  (`<type>/<description>`, types matching the Conventional Commit type list —
+  `feat` not `feature`); merge commits into `main` pass.
+- `.husky/commit-msg` — enforces the Conventional Commit subject format
+  (`<type>(<scope>)?: <description>`, lowercase, no trailing period; git
+  merge/revert subjects exempt) and rejects attribution trailers
+  (`Co-authored-by`, `Signed-off-by`, `Generated with`, similar).
 - `.husky/check-commit-size.sh` — enforces the commit size budget on the
   staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
   required past 30 source lines (locks, generated output, docs, and .husky
@@ -74,9 +83,6 @@ added, edited, renamed, or deleted.**
 - `docs/plans/default-veto-dir.md` — planned: bare `veto` defaults to
   `<repo-root>/.veto/` as the config target when no positional dir or
   `--config` is given (exit 2 with a bootstrap hint otherwise).
-- `docs/plans/git-installable.md` — planned: make
-  `npm i -D github:jcamatta/veto` work by building `dist/` in a guarded
-  `prepare` script (tsup always, husky only in a real checkout).
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
@@ -324,6 +330,10 @@ added, edited, renamed, or deleted.**
 
 ## test/
 
+- `test/setup/git-env.ts` — vitest setup file: strips inherited `GIT_*` env
+  vars so tests that spawn git in temp dirs stay hermetic (the pre-commit
+  hook exports `GIT_DIR`/`GIT_INDEX_FILE`, which would otherwise redirect
+  them at the real repo).
 - `test/core/result.test.ts` — unit tests for the Result type.
 - `test/core/fake-hash.ts` — deterministic FNV-1a-based hex `HashFn` stub
   shared by core tests; keeps the suite free of `node:crypto`.
