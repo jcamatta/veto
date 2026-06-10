@@ -7,6 +7,32 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
 
 ---
 
+## Status (update at the end of every phase)
+
+- [x] **Phase 1 — done, committed** (`a4df879`). All gates green.
+- [x] **Phase 2 — done, implemented & user-reviewed, staged, not yet committed.**
+  All schemas/errors in `src/domain/`, `Result` in `src/core/result.ts`,
+  decode tests for every schema.
+- [x] **Phase 3 — done, implemented, awaiting user review & commit.** All pure
+  calculations in `src/core/` with one test file each; gates green (128 tests,
+  100% line coverage, 100% type coverage). Implementation notes / deviations:
+  - Added `picomatch` (+ `@types/picomatch` dev) for pure glob matching, as
+    the plan allowed.
+  - Hashing/fingerprinting take an injected `HashFn` — the core cannot import
+    `node:crypto`; the real sha1 is a Phase-5 adapter concern. Tests use the
+    FNV stub in `test/core/fake-hash.ts`.
+  - Fingerprints normalize the finding `message` (the schema carries no
+    snippet field), NUL-joined preimage, truncated to 12 hex chars.
+  - The reducer is curried (`reduce(state)(event)`) to satisfy `max-params: 1`;
+    shell code wraps it for `Stream.runFold`.
+  - `buildProjection` derives `blocking` from findings, not from the
+    `RunCompleted` event.
+- [ ] Phase 4 — next: ports as Effect services + fixture adapters.
+- [ ] Phase 5 — production adapters.
+- [ ] Phase 6 — pipeline orchestration.
+- [ ] Phase 7 — CLI.
+- [ ] Phase 8 — hardening, dogfood & acceptance.
+
 ## Phase 1 — Scaffold & tooling
 
 Goal: an empty but fully gated project. Everything after this phase is written
