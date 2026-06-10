@@ -32,6 +32,8 @@ type SessionInput = {
   readonly prompt: string
   readonly policy: AgentRunInput['policy']
   readonly maxTurns: number
+  readonly model: string | null
+  readonly effort: AgentRunInput['effort']
 }
 
 type RetrySession = {
@@ -80,7 +82,9 @@ const collectEvents = (
           prompt: input.prompt,
           policy: input.policy,
           limits: { maxTurns: input.maxTurns },
-          outputSchema: findingsSchema
+          outputSchema: findingsSchema,
+          model: input.model,
+          effort: input.effort
         })
         .pipe(
           Stream.map(toEvent(input.key.reviewer)),

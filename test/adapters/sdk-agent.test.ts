@@ -27,7 +27,9 @@ const runInput = (policy: AgentRunInput['policy']): AgentRunInput => ({
   prompt: 'review this diff',
   policy,
   limits: { maxTurns: 15 },
-  outputSchema: { type: 'object' }
+  outputSchema: { type: 'object' },
+  model: null,
+  effort: null
 })
 
 const decideWith = (
@@ -98,6 +100,40 @@ describe('sdkAgent', () => {
         }
       }
     })
+  })
+
+  it('passes model and effort through to the sdk options when set', async () => {
+    const queryFn: QueryFn = (params) => ({
+      [Symbol.asyncIterator]: async function* () {
+        await Promise.resolve()
+        yield params
+      }
+    })
+    const items = await collect(queryFn, {
+      ...runInput(allowReads),
+      model: 'claude-sonnet-4-6',
+      effort: 'medium'
+    })
+    expect(items[0]).toMatchObject({
+      raw: { options: { model: 'claude-sonnet-4-6', effort: 'medium' } }
+    })
+  })
+
+  it('omits model and effort from the sdk options when unset', async () => {
+    const queryFn: QueryFn = (params) => ({
+      [Symbol.asyncIterator]: async function* () {
+        await Promise.resolve()
+        yield params
+      }
+    })
+    const items = await collect(queryFn, runInput(allowReads))
+    const first = items[0]
+    expect(first?._tag).toBe('AgentMessage')
+    if (first?._tag === 'AgentMessage') {
+      const raw = first.raw as QueryParams
+      expect('model' in raw.options).toBe(false)
+      expect('effort' in raw.options).toBe(false)
+    }
   })
 
   it('omits outputFormat when no output schema is requested', async () => {

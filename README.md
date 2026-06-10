@@ -33,6 +33,7 @@ veto --config=a.yaml --config=b.yaml              # several
 veto .reviewer/ --staged                          # staged diff (the default; flag documents intent)
 veto .reviewer/ --format=json                     # machine-readable output (default: pretty)
 veto .reviewer/ --no-cache                        # bypass the exact-replay cache
+veto .reviewer/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
 ```
 
 ### Pre-commit (husky)
@@ -62,6 +63,10 @@ One YAML file per reviewer, committed (conventionally under `.reviewer/`):
 # .reviewer/architect.yaml
 name: architect
 mode: static                  # "runtime" is reserved for v2 and rejected today
+model: claude-sonnet-4-6      # optional — opaque string the backend interprets
+effort: medium                # optional — low | medium | high | xhigh | max
+maxTurns: 15                  # optional — agentic turn ceiling
+timeoutMs: 240000             # optional — overrides the run timeout for this reviewer
 paths:                        # trigger globs — no staged match ⇒ reviewer skips
   - "src/**/*.ts"
 ignore:                       # never considered by this reviewer
@@ -77,6 +82,12 @@ rules:                        # natural-language judgment rules
 
 Keep **judgment** rules only. If eslint can enforce it deterministically, it
 belongs in eslint, which runs first in the hook.
+
+On a personal subscription, `model: claude-sonnet-4-6` with `effort: medium`
+is the recommended default — cheaper, faster, and far less likely to spend
+its whole timeout thinking. The `model` string is opaque to the engine: only
+the agent adapter interprets it, so alternative backends can define their
+own values.
 
 ## How it behaves on re-runs
 

@@ -8,6 +8,7 @@ type CliArgs = {
   readonly staged: boolean
   readonly format: ReportFormat
   readonly noCache: boolean
+  readonly timeout: Option.Option<number>
 }
 
 const dir = Args.text({ name: 'config-dir' }).pipe(
@@ -37,6 +38,13 @@ const noCache = Options.boolean('no-cache').pipe(
   Options.withDescription('bypass the Layer-1 exact-replay cache')
 )
 
-const cliOptions = { dir, config, staged, format, noCache }
+const timeout = Options.integer('timeout').pipe(
+  Options.withDescription(
+    'per-reviewer timeout in seconds (default 90; reviewer configs can override)'
+  ),
+  Options.optional
+)
+
+const cliOptions = { dir, config, staged, format, noCache, timeout }
 
 export { type CliArgs, cliOptions }

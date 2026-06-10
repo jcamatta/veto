@@ -111,8 +111,9 @@ added, edited, renamed, or deleted.**
 - `src/ports/git.ts` — the `Git` port: `GitService` (stagedDiff, head, branch,
   stagedFile) failing with `GitError`, plus the `Git` Context tag.
 - `src/ports/agent.ts` — the `Agent` port: `AgentRunInput` (prompt, injected
-  tool-call policy, limits, and an opaque `outputSchema` JSON schema or
-  null), the `AgentStreamItem` union (`AgentMessage`/`AgentDenial`), and
+  tool-call policy, limits, opaque `outputSchema`/`model`/`effort` hints
+  interpreted only by adapters), the `AgentStreamItem` union
+  (`AgentMessage`/`AgentDenial`), and
   `AgentService.run` returning a `Stream` failing with `AgentUnavailable`;
   the `Agent` Context tag.
 - `src/ports/run-store.ts` — the `RunStore` port: appendEvent (per key +
@@ -176,7 +177,8 @@ added, edited, renamed, or deleted.**
   the new baseline and run record.
 - `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: glob-scope skip
   → Layer-1 replay check (record hash comparison) → live agent session with
-  injected tool policy, per-reviewer timeout, and typed fail-open
+  injected tool policy and per-reviewer knobs (model/effort/maxTurns from
+  the config, config timeout overriding the run timeout), and typed fail-open
   (`AgentUnavailable`/`FindingsParseError`/`TimeoutException` →
   `ReviewerFailed`).
 - `src/engine/run-review.ts` — the whole-run command: reject `runtime` mode,
@@ -191,8 +193,8 @@ added, edited, renamed, or deleted.**
   `NodeContext` platform layer, run via `NodeRuntime.runMain`.
 - `src/cli/options.ts` — the `@effect/cli` surface: positional config
   dir/file, repeatable `--config`, `--staged`, `--format=pretty|json`
-  (default pretty), `--no-cache`, with help descriptions; the decoded
-  `CliArgs` type.
+  (default pretty), `--no-cache`, `--timeout` (seconds), with help
+  descriptions; the decoded `CliArgs` type.
 - `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
   via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
   `GitError` ("not a git repository", CLI misuse).
@@ -214,7 +216,9 @@ added, edited, renamed, or deleted.**
 
 - `src/domain/reviewer-config.ts` — `ReviewerConfig` schema for the per-reviewer
   YAML (name, `mode` seam, paths, ignore with empty default, systemPrompt,
-  rules); `runtime` mode is accepted by the schema, rejected by the engine in v1.
+  rules, plus optional backend knobs: opaque `model`, `effort` level,
+  `maxTurns`, `timeoutMs`); `runtime` mode is accepted by the schema,
+  rejected by the engine in v1.
 - `src/domain/staged-diff.ts` — `StagedDiff` schema: full diff text plus the
   staged file list.
 - `src/domain/finding.ts` — `Severity`, the branded `Fingerprint`, the

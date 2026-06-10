@@ -190,6 +190,42 @@ describe('runReview — completed runs', () => {
     expect(calls[0]?.prompt).toContain('no cross-layer imports')
     expect(calls[0]?.prompt).toContain(repo.diff.diffText)
     expect(calls[0]?.limits.maxTurns).toBe(15)
+    expect(calls[0]?.model).toBeNull()
+    expect(calls[0]?.effort).toBeNull()
+  })
+
+  it('passes per-reviewer model, effort, and maxTurns to the agent', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    await execute({
+      agent: scripted.layer,
+      reviewers: [
+        {
+          ...architect,
+          config: {
+            ...architect.config,
+            model: 'claude-sonnet-4-6',
+            effort: 'medium',
+            maxTurns: 8
+          }
+        }
+      ]
+    })
+    const calls = await Effect.runPromise(scripted.calls)
+    expect(calls[0]?.model).toBe('claude-sonnet-4-6')
+    expect(calls[0]?.effort).toBe('medium')
+    expect(calls[0]?.limits.maxTurns).toBe(8)
+  })
+
+  it('lets a reviewer config override the run timeout', async () => {
+    const { code, emitted } = await execute({
+      agent: neverAgent,
+      settings: { timeoutMs: 600_000 },
+      reviewers: [
+        { ...architect, config: { ...architect.config, timeoutMs: 30 } }
+      ]
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
   })
 })
 

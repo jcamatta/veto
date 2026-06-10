@@ -1,5 +1,8 @@
 name: architect
 mode: static
+model: claude-sonnet-4-6
+effort: medium
+timeoutMs: 240000
 paths:
   - "src/**/*.ts"
   - "test/**/*.ts"

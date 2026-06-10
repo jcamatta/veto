@@ -90,6 +90,8 @@ const buildOptions = (input: {
   maxTurns: input.run.limits.maxTurns,
   settingSources: [],
   canUseTool: input.canUseTool,
+  ...(input.run.model === null ? {} : { model: input.run.model }),
+  ...(input.run.effort === null ? {} : { effort: input.run.effort }),
   ...(input.run.outputSchema === null
     ? {}
     : {

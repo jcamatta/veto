@@ -78,7 +78,10 @@ const assembleInput = (input: {
     suppressions: input.suppressions,
     noCache: input.prepare.args.noCache,
     strictScope: false,
-    timeoutMs: defaultTimeoutMs
+    timeoutMs: Option.match(input.prepare.args.timeout, {
+      onNone: () => defaultTimeoutMs,
+      onSome: (seconds) => seconds * 1000
+    })
   },
   format: input.prepare.args.format
 })

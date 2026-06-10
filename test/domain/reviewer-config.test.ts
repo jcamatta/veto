@@ -56,6 +56,31 @@ describe('ReviewerConfig', () => {
     expect(Either.isLeft(result)).toBe(true)
   })
 
+  it('accepts optional model, effort, maxTurns, and timeoutMs knobs', () => {
+    const result = decode({
+      ...valid,
+      model: 'claude-sonnet-4-6',
+      effort: 'medium',
+      maxTurns: 8,
+      timeoutMs: 240000
+    })
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.model).toBe('claude-sonnet-4-6')
+      expect(result.right.effort).toBe('medium')
+    }
+  })
+
+  it('rejects an unknown effort level', () => {
+    const result = decode({ ...valid, effort: 'turbo' })
+    expect(Either.isLeft(result)).toBe(true)
+  })
+
+  it('rejects a non-positive timeout', () => {
+    const result = decode({ ...valid, timeoutMs: 0 })
+    expect(Either.isLeft(result)).toBe(true)
+  })
+
   it('decodes a config parsed from YAML', () => {
     const yaml = [
       'name: architect',

@@ -24,7 +24,9 @@ const input: AgentRunInput = {
   prompt: 'review this diff',
   policy,
   limits: { maxTurns: 15 },
-  outputSchema: null
+  outputSchema: null,
+  model: null,
+  effort: null
 }
 
 const collect = (

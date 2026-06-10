@@ -32,6 +32,7 @@ const args = (overrides: Partial<CliArgs>): CliArgs => ({
   staged: true,
   format: 'pretty',
   noCache: false,
+  timeout: Option.none(),
   ...overrides
 })
 
@@ -83,6 +84,14 @@ describe('prepare', () => {
     )
     expect(prepared.input.reviewers).toHaveLength(2)
     expect(prepared.runsDir).toBe(join(dir, 'runs'))
+  })
+
+  it('maps --timeout seconds onto the run settings in milliseconds', async () => {
+    const dir = configDir()
+    const prepared = await run(
+      args({ dir: Option.some(dir), timeout: Option.some(240) })
+    )
+    expect(prepared.input.settings.timeoutMs).toBe(240_000)
   })
 
   it('propagates the format and no-cache flags into the input', async () => {

@@ -1,6 +1,7 @@
 import { Context, Stream } from 'effect'
 import type { PolicyDecision } from '../core/tool-policy.js'
 import type { AgentUnavailable } from '../domain/errors.js'
+import type { ReviewerEffort } from '../domain/reviewer-config.js'
 
 type ToolCallRequest = {
   readonly tool: string
@@ -18,6 +19,8 @@ type AgentRunInput = {
   readonly policy: (call: ToolCallRequest) => PolicyDecision
   readonly limits: AgentLimits
   readonly outputSchema: JsonSchema | null
+  readonly model: string | null
+  readonly effort: ReviewerEffort | null
 }
 
 type AgentMessage = {

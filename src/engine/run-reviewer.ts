@@ -52,7 +52,7 @@ type FailOpen = {
   readonly started: ReviewEvent
 }
 
-const maxTurns = 15
+const defaultMaxTurns = 15
 
 const policyFor =
   (run: ReviewerRun) =>
@@ -125,9 +125,15 @@ const liveSession = ({ run, startedAt }: LiveSession) =>
       baseline: run.baseline
     }),
     policy: policyFor(run),
-    maxTurns
+    maxTurns: run.reviewer.config.maxTurns ?? defaultMaxTurns,
+    model: run.reviewer.config.model ?? null,
+    effort: run.reviewer.config.effort ?? null
   }).pipe(
-    Effect.timeout(Duration.millis(run.ctx.settings.timeoutMs)),
+    Effect.timeout(
+      Duration.millis(
+        run.reviewer.config.timeoutMs ?? run.ctx.settings.timeoutMs
+      )
+    ),
     Effect.flatMap(({ model, events }) =>
       conclude({
         run,
