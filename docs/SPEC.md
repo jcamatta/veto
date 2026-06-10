@@ -79,6 +79,7 @@ npx veto .veto/ --staged
 ### CLI surface
 
 ```bash
+veto --staged                                     # no target: defaults to <repo-root>/.veto/
 veto --config=.veto/architect.yaml            # one reviewer
 veto --config=a.yaml --config=b.yaml              # several
 veto .veto/                                   # all configs in a dir
@@ -86,6 +87,10 @@ veto .veto/ --staged                          # staged diff only
 veto ... --format=pretty|json                     # output format
 veto ... --no-cache                               # bypass Layer 1 replay
 ```
+
+With no positional directory and no `--config`, veto falls back to
+`<repo-root>/.veto/` when that directory exists; otherwise it exits 2 and
+points at `veto init`. Explicit targets always win over the default.
 
 ### CLI subcommands
 

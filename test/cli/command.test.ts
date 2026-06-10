@@ -24,7 +24,7 @@ const git = (cwd: string, args: readonly string[]): void => {
   execFileSync('git', [...args], { cwd, stdio: 'pipe' })
 }
 
-const repoWithStagedChange = (): string => {
+const repoWithoutVeto = (): string => {
   const dir = mkdtempSync(join(tmpdir(), 'veto-cli-'))
   git(dir, ['init', '-b', 'main'])
   git(dir, ['config', 'user.email', 'test@example.com'])
@@ -33,11 +33,16 @@ const repoWithStagedChange = (): string => {
   writeFileSync(join(dir, 'base.txt'), 'base\n')
   git(dir, ['add', 'base.txt'])
   git(dir, ['commit', '-m', 'initial'])
-  mkdirSync(join(dir, '.veto'))
-  writeFileSync(join(dir, '.veto', 'architect.yaml'), configYaml)
   mkdirSync(join(dir, 'src'))
   writeFileSync(join(dir, 'src', 'a.ts'), 'const x = 1\n')
   git(dir, ['add', 'src/a.ts'])
+  return dir
+}
+
+const repoWithStagedChange = (): string => {
+  const dir = repoWithoutVeto()
+  mkdirSync(join(dir, '.veto'))
+  writeFileSync(join(dir, '.veto', 'architect.yaml'), configYaml)
   return dir
 }
 
@@ -145,8 +150,15 @@ describe('makeCli', () => {
     expect(result.codes).toEqual([2])
   })
 
-  it('exits 2 when no config is given at all', async () => {
+  it('defaults to .veto/ on a bare veto --staged run', async () => {
     const dir = repoWithStagedChange()
+    const result = await runCli({ cwd: dir, argv: ['--staged'] })
+    expect(result.codes).toEqual([0])
+    expect(existsSync(join(dir, '.veto', 'runs', 'latest.json'))).toBe(true)
+  })
+
+  it('exits 2 when no config is given and the repo has no .veto/', async () => {
+    const dir = repoWithoutVeto()
     const result = await runCli({ cwd: dir, argv: ['--staged'] })
     expect(result.codes).toEqual([2])
   })

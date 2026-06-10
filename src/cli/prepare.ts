@@ -24,19 +24,33 @@ type ResolvedTargets = {
   readonly first: string
 }
 
-const targetsOf = (
-  args: CliArgs
-): Effect.Effect<ResolvedTargets, ConfigError> => {
-  const targets = [...Option.toArray(args.dir), ...args.config]
-  const [first] = targets
-  return first === undefined
-    ? Effect.fail(
-        configError(
-          'no reviewer configs given: pass a config directory or --config'
-        )
+const defaultTarget =
+  (env: PrepareEnv) =>
+  (repoRoot: string): Effect.Effect<ResolvedTargets, ConfigError> => {
+    const candidate = env.path.join(repoRoot, '.veto')
+    return env.fs.stat(candidate).pipe(
+      Effect.option,
+      Effect.flatMap((info) =>
+        Option.isSome(info) && info.value.type === 'Directory'
+          ? Effect.succeed({ targets: [candidate], first: candidate })
+          : Effect.fail(
+              configError(
+                'no reviewer configs found: no .veto/ in the repo root — run veto init, pass a config directory, or use --config'
+              )
+            )
       )
-    : Effect.succeed({ targets, first })
-}
+    )
+  }
+
+const targetsOf =
+  (env: PrepareEnv) =>
+  (input: PrepareInput): Effect.Effect<ResolvedTargets, ConfigError> => {
+    const targets = [...Option.toArray(input.args.dir), ...input.args.config]
+    const [first] = targets
+    return first === undefined
+      ? defaultTarget(env)(input.repoRoot)
+      : Effect.succeed({ targets, first })
+  }
 
 const baseDirOf =
   (env: PrepareEnv) =>
@@ -120,12 +134,13 @@ const prepare = (
   ConfigError,
   FileSystem.FileSystem | Path.Path
 > =>
-  Effect.all({
-    env: Effect.all({ fs: FileSystem.FileSystem, path: Path.Path }),
-    resolved: targetsOf(input.args)
-  }).pipe(
-    Effect.flatMap(({ env, resolved }) =>
-      assemble(env)({ prepare: input, resolved })
+  Effect.all({ fs: FileSystem.FileSystem, path: Path.Path }).pipe(
+    Effect.flatMap((env) =>
+      targetsOf(env)(input).pipe(
+        Effect.flatMap((resolved) =>
+          assemble(env)({ prepare: input, resolved })
+        )
+      )
     )
   )
 
