@@ -11,7 +11,7 @@ type FingerprintInput = {
 const decodeFingerprint = Schema.decodeSync(Fingerprint)
 
 const stripLineNumbers = (line: string): string =>
-  line.replace(/^\s*\d+[:.)]?\s*/, '')
+  line.replace(/^\s*\d+[:.)]?\s+/, '')
 
 const normalizeSnippet = (snippet: string): string =>
   snippet

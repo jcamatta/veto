@@ -25,6 +25,11 @@ describe('normalizeSnippet', () => {
     expect(normalizeSnippet('  7) foo()')).toBe('foo()')
   })
 
+  it('keeps a bare number that is not a line-number prefix', () => {
+    expect(normalizeSnippet('0 0')).toBe('0')
+    expect(normalizeSnippet(normalizeSnippet('0 0'))).toBe('0')
+  })
+
   it('is idempotent (property)', () => {
     fc.assert(
       fc.property(fc.string(), (s) => {
