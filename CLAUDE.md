@@ -1,4 +1,4 @@
-# local-reviewer (veto)
+# veto
 
 A standalone CLI that runs AI reviewer agents against a repo's staged changes
 (pre-commit gate) and reports structured findings. The full product & technical

@@ -1,5 +1,6 @@
 import tseslint from 'typescript-eslint'
 import functional from 'eslint-plugin-functional'
+import eslintComments from '@eslint-community/eslint-plugin-eslint-comments'
 
 const limitsRules = {
   'max-params': ['error', 1],
@@ -13,6 +14,19 @@ const limitsRules = {
   complexity: ['error', 8],
   'max-nested-callbacks': ['error', 3],
   'max-classes-per-file': ['error', 1]
+}
+
+const noSuppressionRules = {
+  '@eslint-community/eslint-comments/no-use': ['error', { allow: [] }],
+  '@typescript-eslint/ban-ts-comment': [
+    'error',
+    {
+      'ts-expect-error': true,
+      'ts-ignore': true,
+      'ts-nocheck': true,
+      'ts-check': true
+    }
+  ]
 }
 
 const styleRules = {
@@ -59,14 +73,17 @@ const config = tseslint.config(
   ...tseslint.configs.stylisticTypeChecked,
   {
     files: ['src/**/*.ts', 'test/**/*.ts'],
-    plugins: { functional },
+    plugins: {
+      functional,
+      '@eslint-community/eslint-comments': eslintComments
+    },
     languageOptions: {
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname
       }
     },
-    rules: { ...styleRules, ...functionalRules }
+    rules: { ...noSuppressionRules, ...styleRules, ...functionalRules }
   },
   {
     files: ['src/**/*.{ts,tsx}'],

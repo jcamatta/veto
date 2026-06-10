@@ -1,4 +1,4 @@
-# local-reviewer — Product & Technical Specification
+# veto — Product & Technical Specification
 
 > Status: **decided**. This document consolidates all product and architecture decisions.
 > It is the source of truth for the initial implementation. Sections marked **v2** are
@@ -65,7 +65,7 @@ same engine with a different tool-permission policy function plus a `setup:` com
 ### Installation (per repo, decided: devDependency, not global)
 
 ```bash
-npm i -D local-reviewer        # version pinned per repo, like eslint
+npm i -D veto        # version pinned per repo, like eslint
 ```
 
 ### Pre-commit (husky)
@@ -73,18 +73,18 @@ npm i -D local-reviewer        # version pinned per repo, like eslint
 ```bash
 # .husky/pre-commit
 npx eslint --fix ...           # deterministic checks FIRST (cheap, exact)
-npx local-reviewer .reviewer/ --staged
+npx veto .reviewer/ --staged
 ```
 
 ### CLI surface
 
 ```bash
-local-reviewer --config=.reviewer/architect.yaml            # one reviewer
-local-reviewer --config=a.yaml --config=b.yaml              # several
-local-reviewer .reviewer/                                   # all configs in a dir
-local-reviewer .reviewer/ --staged                          # staged diff only
-local-reviewer ... --format=pretty|json                     # output format
-local-reviewer ... --no-cache                               # bypass Layer 1 replay
+veto --config=.reviewer/architect.yaml            # one reviewer
+veto --config=a.yaml --config=b.yaml              # several
+veto .reviewer/                                   # all configs in a dir
+veto .reviewer/ --staged                          # staged diff only
+veto ... --format=pretty|json                     # output format
+veto ... --no-cache                               # bypass Layer 1 replay
 ```
 
 ### Exit codes & severity policy (decided)
@@ -398,7 +398,7 @@ Tagged errors: `GitError`, `ConfigError`, `AgentUnavailable`, `FindingsParseErro
 | Globs          | `tinyglobby` (or `picomatch` for pure matching) |
 | Tests          | `vitest` + `@effect/vitest`; property tests on reducer & fingerprint normalization welcome (`fast-check`) |
 | Lint (own code)| `typescript-eslint` strict-type-checked + `eslint-plugin-functional` |
-| Build/publish  | `tsup` → ESM bundle, `bin: { "local-reviewer": "dist/cli.js" }`, `engines.node >= 20` |
+| Build/publish  | `tsup` → ESM bundle, `bin: { "veto": "dist/cli.js" }`, `engines.node >= 20` |
 
 Schema sits at every trust boundary: YAML configs, model output, and our own files read
 back from disk. Nothing untrusted crosses into the core undecoded.
@@ -410,7 +410,7 @@ back from disk. Nothing untrusted crosses into the core undecoded.
 ```
 pre-commit
   └─ eslint (deterministic, first)
-  └─ local-reviewer .reviewer/ --staged
+  └─ veto .reviewer/ --staged
        1. load + decode configs            (ConfigLoader, Schema)
        2. git: staged diff, files, HEAD, branch
        3. per reviewer:
@@ -437,7 +437,7 @@ pre-commit
 
 ## 14. Acceptance criteria for v1
 
-1. `npx local-reviewer .reviewer/ --staged` in a repo with one config reviews a staged
+1. `npx veto .reviewer/ --staged` in a repo with one config reviews a staged
    diff and writes `latest.json`/`latest.md` + event JSONL.
 2. Reviewer with non-matching `paths` adds < 100 ms and no model call.
 3. Re-run with identical diff+config replays from cache (no model call).

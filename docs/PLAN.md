@@ -1,4 +1,4 @@
-# local-reviewer — Implementation Plan
+# veto — Implementation Plan
 
 Derived from [SPEC.md](SPEC.md). Work proceeds phase by phase: implement → user
 reviews → user approves → commit → next phase. **No commit without approval.**
@@ -27,7 +27,28 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     shell code wraps it for `Stream.runFold`.
   - `buildProjection` derives `blocking` from findings, not from the
     `RunCompleted` event.
-- [ ] Phase 4 — next: ports as Effect services + fixture adapters.
+- [x] **Phase 4 — done, implemented, awaiting user review & commit.** Ports as
+  `Context.Tag` services in `src/ports/` (`Git`, `Agent`, `RunStore`,
+  `Reporter`, `ReviewClock`), test adapters in `test/adapters/` (following the
+  `fake-hash.ts` precedent — coverage only counts `src/**`); gates green
+  (144 tests, 100% line & type coverage). Implementation notes / deviations:
+  - The clock port is named `ReviewClock` to avoid clashing with Effect's
+    built-in `Clock`; `now` returns `DateTime.Utc` (matches `ranAt` schemas).
+  - `Agent.run` streams an `AgentStreamItem` union
+    (`AgentMessage { raw }` / `AgentDenial { tool, path, reason }`) so the
+    Phase-6 pipeline can map items to `AgentEvent` / `ToolCallDenied` events;
+    the policy is injected as `(call: { tool, path }) => PolicyDecision` and
+    the scripted test adapter actually invokes it (`CallTool` script steps).
+  - `RunStore` methods carry no typed error (store failure is not part of the
+    fail-open policy; production adapter will `orDie`). `writeProjections`
+    takes the projection plus pre-rendered markdown.
+  - Stateful test adapters (scripted agent's call log, in-memory store,
+    collector reporter) hold state in Effect `Ref`s with readonly types —
+    no lint relaxation; assertions read the state as an `Effect`.
+  - eslint hardened: all suppression directives are now lint errors
+    (`@eslint-community/eslint-comments/no-use` banning `eslint-disable*`,
+    `ban-ts-comment` banning every `@ts-*` directive); added
+    `@eslint-community/eslint-plugin-eslint-comments` dev dependency.
 - [ ] Phase 5 — production adapters.
 - [ ] Phase 6 — pipeline orchestration.
 - [ ] Phase 7 — CLI.
@@ -39,7 +60,7 @@ Goal: an empty but fully gated project. Everything after this phase is written
 under enforced rules.
 
 - `git init` (branch `main`), root `.gitignore`.
-- `package.json`: ESM, `engines.node >= 20`, `bin: { "local-reviewer": "dist/cli.js" }`,
+- `package.json`: ESM, `engines.node >= 20`, `bin: { "veto": "dist/cli.js" }`,
   scripts (`build`, `test`, `coverage`, `lint`, `typecheck`, `type-coverage`, `check`).
 - Dependencies: `effect`, `@effect/cli`, `@effect/platform`, `@effect/platform-node`,
   `@anthropic-ai/claude-agent-sdk`, `yaml`, `tinyglobby`.
@@ -145,7 +166,7 @@ Goal: the user-facing command via `@effect/cli`.
   `--format=pretty|json`, `--no-cache`; help text.
 - Thin command/query dispatcher over the Phase-6 engine; exit code mapping
   (2 for misuse: bad config, not a git repo, bad flags).
-- `tsup` build producing `dist/cli.js`; `npx local-reviewer` works locally.
+- `tsup` build producing `dist/cli.js`; `npx veto` works locally.
 
 ## Phase 8 — Hardening, dogfood & acceptance
 

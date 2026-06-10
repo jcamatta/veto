@@ -1,0 +1,51 @@
+import { Context, Stream } from 'effect'
+import type { PolicyDecision } from '../core/tool-policy.js'
+import type { AgentUnavailable } from '../domain/errors.js'
+
+type ToolCallRequest = {
+  readonly tool: string
+  readonly path: string | null
+}
+
+type AgentLimits = {
+  readonly maxTurns: number
+}
+
+type AgentRunInput = {
+  readonly prompt: string
+  readonly policy: (call: ToolCallRequest) => PolicyDecision
+  readonly limits: AgentLimits
+}
+
+type AgentMessage = {
+  readonly _tag: 'AgentMessage'
+  readonly raw: unknown
+}
+
+type AgentDenial = {
+  readonly _tag: 'AgentDenial'
+  readonly tool: string
+  readonly path: string
+  readonly reason: string
+}
+
+type AgentStreamItem = AgentMessage | AgentDenial
+
+type AgentService = {
+  readonly run: (
+    input: AgentRunInput
+  ) => Stream.Stream<AgentStreamItem, AgentUnavailable>
+}
+
+class Agent extends Context.Tag('veto/Agent')<Agent, AgentService>() {}
+
+export {
+  type ToolCallRequest,
+  type AgentLimits,
+  type AgentRunInput,
+  type AgentMessage,
+  type AgentDenial,
+  type AgentStreamItem,
+  type AgentService,
+  Agent
+}

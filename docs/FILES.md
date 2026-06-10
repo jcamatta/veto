@@ -8,7 +8,7 @@ added, edited, renamed, or deleted.**
 
 - `CLAUDE.md` — project context for Claude Code: workflow rules, code
   conventions, quality gates, documentation discipline.
-- `package.json` — package manifest: name `local-reviewer`, ESM, Node >= 20,
+- `package.json` — package manifest: name `veto`, ESM, Node >= 20,
   `bin` entry, scripts (`build`, `test`, `coverage`, `lint`, `typecheck`,
   `type-coverage`, `check`), dependencies.
 - `tsconfig.json` — TypeScript strict ESM (NodeNext) compiler configuration,
@@ -16,7 +16,9 @@ added, edited, renamed, or deleted.**
 - `eslint.config.js` — flat eslint config: typescript-eslint
   strict-type-checked + stylistic, eslint-plugin-functional (immutability,
   no-let, no-throw, no loops), style bans (no console, no inline comments, no
-  default exports), and hard size/complexity limits on `src/**`.
+  default exports), a ban on all suppression directives (`eslint-disable*` via
+  eslint-comments/no-use, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck` via
+  ban-ts-comment), and hard size/complexity limits on `src/**`.
 - `vitest.config.ts` — vitest configuration with v8 coverage and 80% thresholds
   on lines/branches/functions/statements.
 - `tsup.config.ts` — build configuration: bundles `src/cli.ts` to ESM
@@ -69,6 +71,22 @@ added, edited, renamed, or deleted.**
   `LatestProjection` (the `latest.json` shape), blocking derived from findings.
 - `src/core/markdown.ts` — `renderMarkdown`: `LatestProjection` → the
   human-readable `latest.md` document.
+
+## src/ports/ — the hexagon's interfaces (Effect services, SPEC §10)
+
+- `src/ports/git.ts` — the `Git` port: `GitService` (stagedDiff, head, branch,
+  stagedFile) failing with `GitError`, plus the `Git` Context tag.
+- `src/ports/agent.ts` — the `Agent` port: `AgentRunInput` (prompt, injected
+  tool-call policy, limits), the `AgentStreamItem` union
+  (`AgentMessage`/`AgentDenial`), and `AgentService.run` returning a `Stream`
+  failing with `AgentUnavailable`; the `Agent` Context tag.
+- `src/ports/run-store.ts` — the `RunStore` port: appendEvent (per key +
+  attempt), baseline/record read-write, writeProjections (projection +
+  rendered markdown), and prune (keep last N heads); the `RunStore` tag.
+- `src/ports/reporter.ts` — the `Reporter` port: `ReportFormat`
+  (`pretty`/`json`) and `emit(projection, format)`; the `Reporter` tag.
+- `src/ports/clock.ts` — the `ReviewClock` port (named to avoid clashing with
+  Effect's own `Clock`): `now` as `Effect<DateTime.Utc>`; the tag.
 
 ## src/domain/ — Schema types at every trust boundary (SPEC §10)
 
@@ -126,6 +144,32 @@ added, edited, renamed, or deleted.**
   blocking, empty-repo fallbacks.
 - `test/core/markdown.test.ts` — markdown rendering of header, findings,
   resolved fingerprints, and empty reviewers.
+- `test/adapters/fixture-git.ts` — fixture `Git` adapter: `fixtureGit` serving
+  a canned diff/head/branch/staged-content map, and `failingGit` failing every
+  method with `GitError` (for not-a-repo paths).
+- `test/adapters/scripted-agent.ts` — scripted-stream `Agent` adapter (zero
+  credits): a `ScriptStep` script (`Say` raw messages, `CallTool` attempts run
+  through the injected policy → message or denial), call recording, and
+  `unavailableAgent` failing with `AgentUnavailable`.
+- `test/adapters/in-memory-run-store.ts` — in-memory `RunStore` adapter over
+  Maps keyed by `head/reviewer`, exposing its memory for assertions; prune
+  keeps the last N heads by insertion order.
+- `test/adapters/collector-reporter.ts` — collector `Reporter` adapter
+  recording every emitted projection + format in order.
+- `test/adapters/fixed-clock.ts` — fixed `ReviewClock` adapter returning one
+  constant `DateTime.Utc`.
+- `test/adapters/fixture-git.test.ts` — fixture git serving diff/head/branch,
+  staged-file hit and `GitError` miss, failingGit on all methods.
+- `test/adapters/scripted-agent.test.ts` — scripted stream playback, policy
+  wire-through (allowed tool call vs `AgentDenial`), call recording, and the
+  `AgentUnavailable` failure stream.
+- `test/adapters/in-memory-run-store.test.ts` — event append per key/attempt,
+  baseline/record round-trips and null misses, key isolation, projection
+  collection, and head pruning.
+- `test/adapters/collector-reporter.test.ts` — ordered collection of emitted
+  projections with formats.
+- `test/adapters/fixed-clock.test.ts` — the fixed instant is returned on every
+  read.
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.
