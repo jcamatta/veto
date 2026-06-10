@@ -76,7 +76,7 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     `symbolic-ref`; detached HEAD falls back to `rev-parse --abbrev-ref`.
   - `fs-run-store` prunes HEAD dirs by mtime (newest N kept) and treats
     unreadable/corrupt baseline or record files as null (no baseline).
-- [x] **Phase 6 — done, awaiting review/commit.** The engine in `src/engine/`
+- [x] **Phase 6 — done, committed** (`403d0a4`). The engine in `src/engine/`
   (`inputs`, `reviewer-run`, `agent-session`, `reviewer-conclude`,
   `run-reviewer`, `run-review`) plus two new core calculations
   (`agent-output`, `findings-parse`) and `appendParseRetry` in `prompt`;
