@@ -122,11 +122,17 @@ Two consequences the bench records per run:
 1. `apiKeySource` is copied into each `results.jsonl` line, so historical
    numbers are attributable ("this slow cell ran on the subscription, that
    one on the CI key").
-2. `costUsd` is the **API-equivalent price** computed by the SDK. On
-   `apiKeySource: "none"` no dollars are charged — the run consumes
-   subscription allowance — but the number remains the right optimization
-   target because it is proportional to allowance burn and is the literal
-   bill in CI.
+2. `costUsd` is the **API-equivalent price** computed by the SDK, and since
+   2026-06-15 it is the literal billing unit everywhere: subscription plans
+   draw Agent SDK / `claude -p` usage from a **monthly Agent SDK credit**
+   measured in dollars ($20 Pro, $100 Max 5x, $200 Max 20x — separate from
+   interactive limits, no rollover), and CI keys bill the same rates
+   per-token. A $0.35 review × N commits/month is a budget line, not an
+   abstraction. When the monthly credit is exhausted, SDK requests stop and
+   veto **fails open** — the gate silently stops gating until the cycle
+   resets, which is a reliability scenario the bench's fail-open metric
+   should be read against.
+   See https://support.claude.com/en/articles/15036540.
 
 Harness TODO: `record.json` currently persists `sessionId: null`; the bench
 should lift `session_id` and `apiKeySource` from the init event into its
