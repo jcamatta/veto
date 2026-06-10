@@ -16,12 +16,12 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
   (`.husky/check-commit-size.sh`): ≤ 300 weighted source lines, ≤ 15 source
   files, and test changes required when > 30 source lines change. Split
   work into multiple commits rather than fighting the budget.
-- **Never commit without explicit user approval.**
 - Solo project: commit directly to `main`. No branches, no PRs.
 - Conventional Commits: `<type>(<scope>): <description>` — allowed types:
   `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
   `style`, `test`. Short, imperative, lowercase description; no trailing period;
-  `!` for breaking changes. No `Co-authored-by` or other footers.
+  `!` for breaking changes. No `Co-authored-by` or other attribution footers
+  (enforced by `.husky/commit-msg`).
 - If a commit is blocked by the reviewer, read `.veto/runs/latest.json`
   and fix the findings, then commit again.
 

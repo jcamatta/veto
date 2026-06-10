@@ -31,6 +31,8 @@ added, edited, renamed, or deleted.**
 - `.husky/pre-commit` — pre-commit gate: commit-size budget first, then lint,
   typecheck, tests with coverage, type coverage, build + dogfood
   (`veto .veto/ --staged`).
+- `.husky/commit-msg` — rejects attribution trailers (`Co-authored-by`,
+  `Signed-off-by`, `Generated with`, similar) in commit messages.
 - `.husky/check-commit-size.sh` — enforces the commit size budget on the
   staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
   required past 30 source lines (locks, generated output, docs, and .husky
