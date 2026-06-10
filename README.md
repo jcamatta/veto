@@ -19,8 +19,12 @@ environments without a logged-in `claude` need an `ANTHROPIC_API_KEY`.
 ## Install
 
 ```bash
-npm i -D veto        # per repo, version pinned, like eslint
+npm i -D github:jcamatta/veto        # per repo, like eslint
 ```
+
+veto is not on npm; it installs straight from the GitHub repo (`dist/` is
+built during install). Pin a tag or commit for reproducible installs:
+`npm i -D github:jcamatta/veto#<tag|commit>`.
 
 Requires Node >= 20 and a git repository.
 

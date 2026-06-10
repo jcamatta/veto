@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config'
 const config = defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
+    setupFiles: ['test/setup/git-env.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

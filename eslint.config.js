@@ -67,7 +67,14 @@ const functionalRules = {
 
 const config = tseslint.config(
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**', '*.config.js', '*.config.ts']
+    ignores: [
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      'scripts/**',
+      '*.config.js',
+      '*.config.ts'
+    ]
   },
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,

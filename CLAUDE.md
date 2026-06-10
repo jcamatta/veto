@@ -18,8 +18,9 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
   work into multiple commits rather than fighting the budget.
 - **Every plan and every change gets its own branch** named per the
   [Conventional Branch spec](https://conventionalbranch.org):
-  `<type>/<description>` with type in
-  `feature|feat|bugfix|fix|hotfix|release|chore` and a lowercase
+  `<type>/<description>` with type drawn from the same list as commit
+  types (`build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test` —
+  `feat` not `feature`, `fix` not `bugfix`) and a lowercase
   hyphen-separated description. Direct commits to `main` are rejected by
   `.husky/check-branch.sh`.
 - **A branch is associated with its plan.** When the plan is complete
@@ -30,8 +31,8 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
 - Conventional Commits: `<type>(<scope>): <description>` — allowed types:
   `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
   `style`, `test`. Short, imperative, lowercase description; no trailing period;
-  `!` for breaking changes. No `Co-authored-by` or other attribution footers
-  (enforced by `.husky/commit-msg`).
+  `!` for breaking changes. No `Co-authored-by` or other attribution footers.
+  Both the format and the footer ban are enforced by `.husky/commit-msg`.
 - If a commit is blocked by the reviewer, read `.veto/runs/latest.json`
   and fix the findings, then commit again.
 
