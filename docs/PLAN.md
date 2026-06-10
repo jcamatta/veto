@@ -50,7 +50,7 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     (`@eslint-community/eslint-comments/no-use` banning `eslint-disable*`,
     `ban-ts-comment` banning every `@ts-*` directive); added
     `@eslint-community/eslint-plugin-eslint-comments` dev dependency.
-- [x] **Phase 5 — done, awaiting commit.** Production adapters in
+- [x] **Phase 5 — done, committed** (`bb13575`). Production adapters in
   `src/adapters/` (one file each: `command-git`, `fs-run-store`,
   `terminal-reporter`, `sdk-agent`, `config-loader`, plus `sha1` and
   `system-clock`); gates green (180 tests, 99.8% line / 99.9% type coverage).
