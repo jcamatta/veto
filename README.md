@@ -24,9 +24,23 @@ npm i -D veto        # per repo, version pinned, like eslint
 
 Requires Node >= 20 and a git repository.
 
+Then scaffold the repo in one step:
+
+```bash
+npx veto init        # detect the stack, write a starter .veto/architect.yaml, wire husky
+```
+
+`veto init` detects your stack from `package.json` (electron / next / react /
+plain Node), writes a commented starter config with cost-tuned defaults and
+example rules to replace, appends `npx veto .veto/ --staged` to
+`.husky/pre-commit` when one exists (idempotently), and prints the
+agent-feedback snippet for your CLAUDE.md. It refuses to overwrite existing
+configs and never calls the model.
+
 ## Usage
 
 ```bash
+veto init                                     # scaffold .veto/ for this repo
 veto .veto/                                   # all configs in a dir
 veto --config=.veto/architect.yaml            # one reviewer
 veto --config=a.yaml --config=b.yaml              # several

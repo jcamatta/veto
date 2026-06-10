@@ -87,6 +87,29 @@ veto ... --format=pretty|json                     # output format
 veto ... --no-cache                               # bypass Layer 1 replay
 ```
 
+### CLI subcommands
+
+```bash
+veto init            # scaffold .veto/ in the current repo
+```
+
+`veto init` onboards a repo without writing YAML by hand:
+
+1. **Detects the stack** from `package.json` (`electron` > `next` > `react` >
+   plain Node) to choose path globs and starter rules.
+2. **Writes `.veto/architect.yaml`** — a commented starter config with the
+   cost-tuned defaults (`model: claude-sonnet-4-6`, `effort: low`,
+   `maxTurns: 8`, bounded-reading system prompt) and stack-shaped example
+   rules the user is told to replace.
+3. **Wires the hook**: appends `npx veto .veto/ --staged` to
+   `.husky/pre-commit` when it exists (idempotent — skipped when already
+   present); otherwise prints the line to add.
+4. **Prints the agent-feedback snippet** for CLAUDE.md / AGENTS.md.
+
+Exit 2 when not a git repo or `.veto/` already contains configs (no
+clobbering; no `--force` in v1). Never runs the model — init is free and
+offline.
+
 ### Exit codes & severity policy (decided)
 
 | Code | Meaning |

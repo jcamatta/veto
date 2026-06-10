@@ -59,9 +59,6 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
-- `docs/plans/veto-init.md` — `veto init` scaffolding command: stack
-  detection, cost-tuned starter YAML, idempotent husky wiring, CLAUDE.md
-  snippet.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
