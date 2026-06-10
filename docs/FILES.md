@@ -28,8 +28,13 @@ added, edited, renamed, or deleted.**
   config format, re-run behavior (replay + baseline), escape hatches,
   outputs, sandboxing.
 - `.gitignore` — excludes node_modules, dist, coverage, logs, .env.
-- `.husky/pre-commit` — pre-commit gate: lint, typecheck, tests with coverage,
-  type coverage, then build + dogfood (`veto .veto/ --staged`).
+- `.husky/pre-commit` — pre-commit gate: commit-size budget first, then lint,
+  typecheck, tests with coverage, type coverage, build + dogfood
+  (`veto .veto/ --staged`).
+- `.husky/check-commit-size.sh` — enforces the commit size budget on the
+  staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
+  required past 30 source lines (locks, generated output, docs, and .husky
+  itself excluded).
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, effects at the edges, no
   duplication, behavior-focused tests) over `src`/`test`; documentation is
@@ -48,6 +53,15 @@ added, edited, renamed, or deleted.**
   (`npm run bench`): metrics, fixtures, matrix, executable budgets
   (wall time / turns / cost / finding stability / fail-open rate), and the
   `apiKeySource` accounting of whose credit each run burns.
+- `docs/plans/` — one design doc per feature (motivation + steps); features
+  are planned here instead of growing docs/PLAN.md.
+- `docs/plans/rule-ids.md` — stable rule ids on reviewer configs: fingerprint
+  stability under rule rewording, schema-enforced rule citation, per-rule
+  bench analytics (a manual `version:` field was rejected — `configHash`
+  already does that job).
+- `docs/plans/veto-init.md` — `veto init` scaffolding command: stack
+  detection, cost-tuned starter YAML, idempotent husky wiring, CLAUDE.md
+  snippet.
 - `docs/FILES.md` — this document.
 
 ## src/core/ — pure calculations (functional core, no `node:*`/git/SDK imports)

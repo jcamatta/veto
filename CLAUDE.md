@@ -8,6 +8,13 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
 ## Workflow rules
 
 - Work proceeds phase by phase per docs/PLAN.md. Each phase ends with review.
+- **New features beyond the committed phases do not extend PLAN.md.** Each
+  feature gets one design doc in `docs/plans/<feature>.md` (motivation +
+  steps); implementation follows that doc step by step.
+- **Keep commits small.** The pre-commit enforces a size budget
+  (`.husky/check-commit-size.sh`): ≤ 300 weighted source lines, ≤ 15 source
+  files, and test changes required when > 30 source lines change. Split
+  work into multiple commits rather than fighting the budget.
 - **Never commit without explicit user approval.**
 - Solo project: commit directly to `main`. No branches, no PRs.
 - Conventional Commits: `<type>(<scope>): <description>` — allowed types:
