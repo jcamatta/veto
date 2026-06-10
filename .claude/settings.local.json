@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm i effect @effect/cli @effect/platform @effect/platform-node @anthropic-ai/claude-agent-sdk yaml tinyglobby)"
+    ]
+  }
+}
