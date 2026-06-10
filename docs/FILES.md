@@ -28,9 +28,12 @@ added, edited, renamed, or deleted.**
   config format, re-run behavior (replay + baseline), escape hatches,
   outputs, sandboxing.
 - `.gitignore` — excludes node_modules, dist, coverage, logs, .env.
-- `.husky/pre-commit` — pre-commit gate: commit-size budget first, then lint,
-  typecheck, tests with coverage, type coverage, build + dogfood
-  (`veto .veto/ --staged`).
+- `.husky/pre-commit` — pre-commit gate: branch check and commit-size budget
+  first, then lint, typecheck, tests with coverage, type coverage, build +
+  dogfood (`veto .veto/ --staged`).
+- `.husky/check-branch.sh` — rejects commits from `main`, a detached HEAD, or
+  any branch not named per the Conventional Branch spec
+  (`<type>/<description>`); merge commits into `main` pass.
 - `.husky/commit-msg` — rejects attribution trailers (`Co-authored-by`,
   `Signed-off-by`, `Generated with`, similar) in commit messages.
 - `.husky/check-commit-size.sh` — enforces the commit size budget on the
@@ -61,9 +64,6 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
-- `docs/plans/branch-gate.md` — the conventional-branch commit gate: every
-  change on its own `<type>/<description>` branch, direct commits to `main`
-  rejected by `.husky/check-branch.sh`.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).

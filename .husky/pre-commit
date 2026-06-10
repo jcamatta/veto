@@ -1,3 +1,4 @@
+bash "$(dirname "$0")/check-branch.sh"
 bash "$(dirname "$0")/check-commit-size.sh"
 npm run lint
 npm run typecheck

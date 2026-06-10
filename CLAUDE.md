@@ -16,7 +16,13 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
   (`.husky/check-commit-size.sh`): ≤ 300 weighted source lines, ≤ 15 source
   files, and test changes required when > 30 source lines change. Split
   work into multiple commits rather than fighting the budget.
-- Solo project: commit directly to `main`. No branches, no PRs.
+- **Every plan and every change gets its own branch** named per the
+  [Conventional Branch spec](https://conventionalbranch.org):
+  `<type>/<description>` with type in
+  `feature|feat|bugfix|fix|hotfix|release|chore` and a lowercase
+  hyphen-separated description. Direct commits to `main` are rejected by
+  `.husky/check-branch.sh`; when the gates pass, land the branch with
+  `git merge --ff-only` and delete it. Solo project: no remote PRs.
 - Conventional Commits: `<type>(<scope>): <description>` — allowed types:
   `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
   `style`, `test`. Short, imperative, lowercase description; no trailing period;
