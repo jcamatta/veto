@@ -39,9 +39,12 @@ added, edited, renamed, or deleted.**
   dogfood (`veto .veto/ --staged`).
 - `.husky/check-branch.sh` — rejects commits from `main`, a detached HEAD, or
   any branch not named per the Conventional Branch spec
-  (`<type>/<description>`); merge commits into `main` pass.
-- `.husky/commit-msg` — rejects attribution trailers (`Co-authored-by`,
-  `Signed-off-by`, `Generated with`, similar) in commit messages.
+  (`<type>/<description>`, types matching the Conventional Commit type list —
+  `feat` not `feature`); merge commits into `main` pass.
+- `.husky/commit-msg` — enforces the Conventional Commit subject format
+  (`<type>(<scope>)?: <description>`, lowercase, no trailing period; git
+  merge/revert subjects exempt) and rejects attribution trailers
+  (`Co-authored-by`, `Signed-off-by`, `Generated with`, similar).
 - `.husky/check-commit-size.sh` — enforces the commit size budget on the
   staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
   required past 30 source lines (locks, generated output, docs, and .husky

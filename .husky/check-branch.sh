@@ -15,14 +15,15 @@ fi
 
 if [ "$branch" = "main" ]; then
   echo "✖ Direct commits to main are not allowed."
-  echo "  Create a branch first: git switch -c feature/<description>"
+  echo "  Create a branch first: git switch -c feat/<description>"
   exit 1
 fi
 
-pattern='^(feature|feat|bugfix|fix|hotfix|release|chore)/[a-z0-9]+([.-][a-z0-9]+)*$'
+pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)/[a-z0-9]+([.-][a-z0-9]+)*$'
 if ! printf '%s\n' "$branch" | grep -Eq "$pattern"; then
   echo "✖ Branch '$branch' does not follow the Conventional Branch spec."
-  echo "  Expected <type>/<description> with type in feature|feat|bugfix|fix|hotfix|release|chore"
+  echo "  Expected <type>/<description> with type in build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
+  echo "  (the same types as Conventional Commits — feat not feature, fix not bugfix)"
   echo "  and a lowercase a-z0-9 description with single hyphens (dots allowed for versions)."
   exit 1
 fi
