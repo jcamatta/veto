@@ -43,6 +43,23 @@ describe('buildPrompt', () => {
     expect(prompt).toContain(diff.diffText)
   })
 
+  it('renders identified rules with a bracketed id prefix', () => {
+    const prompt = buildPrompt({
+      config: {
+        ...config,
+        rules: [
+          { id: 'no-cross-layer', rule: 'no cross-layer imports' },
+          'plain rule'
+        ]
+      },
+      diff,
+      baseline: null
+    })
+    expect(prompt).toContain('- [no-cross-layer] no cross-layer imports')
+    expect(prompt).toContain('- plain rule')
+    expect(prompt).toContain('bracketed id')
+  })
+
   it('always ends with the strict JSON instruction', () => {
     const prompt = buildPrompt({ config, diff, baseline: null })
     expect(prompt).toContain('{"findings": []}')

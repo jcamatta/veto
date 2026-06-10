@@ -56,6 +56,46 @@ describe('ReviewerConfig', () => {
     expect(Either.isLeft(result)).toBe(true)
   })
 
+  it('decodes identified rules and mixed shapes', () => {
+    const result = decode({
+      ...valid,
+      rules: [
+        { id: 'no-cross-layer', rule: 'no cross-layer imports' },
+        'plain string rules stay valid'
+      ]
+    })
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.rules[0]).toEqual({
+        id: 'no-cross-layer',
+        rule: 'no cross-layer imports'
+      })
+    }
+  })
+
+  it('rejects duplicate rule ids', () => {
+    const result = decode({
+      ...valid,
+      rules: [
+        { id: 'boundary', rule: 'one' },
+        { id: 'boundary', rule: 'two' }
+      ]
+    })
+    expect(Either.isLeft(result)).toBe(true)
+  })
+
+  it('rejects rule ids that are not kebab-case', () => {
+    const upper = decode({ ...valid, rules: [{ id: 'Boundary', rule: 'x' }] })
+    const spaced = decode({ ...valid, rules: [{ id: 'a rule', rule: 'x' }] })
+    expect(Either.isLeft(upper)).toBe(true)
+    expect(Either.isLeft(spaced)).toBe(true)
+  })
+
+  it('rejects an identified rule with empty text', () => {
+    const result = decode({ ...valid, rules: [{ id: 'boundary', rule: '' }] })
+    expect(Either.isLeft(result)).toBe(true)
+  })
+
   it('accepts optional model, effort, maxTurns, and timeoutMs knobs', () => {
     const result = decode({
       ...valid,

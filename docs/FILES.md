@@ -83,10 +83,14 @@ added, edited, renamed, or deleted.**
   `filterSuppressed` (drop suppressed findings, report their fingerprints).
 - `src/core/baseline-diff.ts` — `diffBaseline`: previous baseline × current
   findings → resolved fingerprints / persisting / fresh, matched by fingerprint.
-- `src/core/prompt.ts` — `buildPrompt`: systemPrompt + rules + staged files +
+- `src/core/prompt.ts` — `buildPrompt`: systemPrompt + rules (identified
+  rules render as `[id] text` and findings must cite the id) + staged files +
   diff + optional baseline with Layer-2 instructions + strict-JSON output
   instruction; `appendParseRetry` appends the schema error for the one
   findings-decode retry.
+- `src/core/rules.ts` — `ruleKey` / `ruleText` / `ruleKeys`: project a
+  `ReviewerRule` (plain string or `{id, rule}`) onto the key findings cite
+  and the prose the prompt renders.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
   separator unification, dot-segment collapsing, drive-letter lowering,
   `isAbsolutePath`, and `resolveWithin` (resolve against a root).
@@ -236,7 +240,8 @@ added, edited, renamed, or deleted.**
 
 - `src/domain/reviewer-config.ts` — `ReviewerConfig` schema for the per-reviewer
   YAML (name, `mode` seam, paths, ignore with empty default, systemPrompt,
-  rules, plus optional backend knobs: opaque `model`, `effort` level,
+  rules as plain strings or `{id, rule}` with kebab-case ids unique per
+  config, plus optional backend knobs: opaque `model`, `effort` level,
   `maxTurns`, `timeoutMs`); `runtime` mode is accepted by the schema,
   rejected by the engine in v1.
 - `src/domain/staged-diff.ts` — `StagedDiff` schema: full diff text plus the
@@ -281,6 +286,8 @@ added, edited, renamed, or deleted.**
   invalid entries) and finding filtering.
 - `test/core/baseline-diff.test.ts` — resolved/persisting/fresh partitioning,
   no-baseline and clean-run cases.
+- `test/core/rules.test.ts` — rule-helper projections for plain and
+  identified rules (key, text, mixed-list keys).
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
   Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,

@@ -1,5 +1,8 @@
 import { Baseline } from '../domain/baseline.js'
-import { ReviewerConfig } from '../domain/reviewer-config.js'
+import {
+  ReviewerConfig,
+  type ReviewerRule
+} from '../domain/reviewer-config.js'
 import { StagedDiff } from '../domain/staged-diff.js'
 
 type PromptInput = {
@@ -21,13 +24,16 @@ const jsonInstruction = [
   'matching exactly this shape:',
   '{"findings": [{"severity": "error" | "warning" | "info",',
   '"file": "<repo-relative path>", "line": <number or null>,',
-  '"rule": "<the config rule that triggered this>",',
+  '"rule": "<the bracketed id of the rule that triggered this, or the rule text when it has no id>",',
   '"message": "<what is wrong>", "suggestion": "<optional fix>"}]}',
   'If there is nothing to report, end with {"findings": []}.'
 ].join('\n')
 
+const ruleLine = (rule: ReviewerRule): string =>
+  typeof rule === 'string' ? `- ${rule}` : `- [${rule.id}] ${rule.rule}`
+
 const rulesSection = (config: ReviewerConfig): string =>
-  ['## Rules', ...config.rules.map((rule) => `- ${rule}`)].join('\n')
+  ['## Rules', ...config.rules.map(ruleLine)].join('\n')
 
 const filesSection = (diff: StagedDiff): string =>
   ['## Staged files in your scope', ...diff.files.map((f) => `- ${f}`)].join(
