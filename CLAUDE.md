@@ -10,7 +10,8 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
 - Work proceeds phase by phase per docs/PLAN.md. Each phase ends with review.
 - **New features beyond the committed phases do not extend PLAN.md.** Each
   feature gets one design doc in `docs/plans/<feature>.md` (motivation +
-  steps); implementation follows that doc step by step.
+  steps); implementation follows that doc step by step. Once the feature is
+  fully implemented, the plan doc can be deleted.
 - **Keep commits small.** The pre-commit enforces a size budget
   (`.husky/check-commit-size.sh`): ≤ 300 weighted source lines, ≤ 15 source
   files, and test changes required when > 30 source lines change. Split
