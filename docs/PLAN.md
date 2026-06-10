@@ -10,12 +10,12 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
 ## Status (update at the end of every phase)
 
 - [x] **Phase 1 — done, committed** (`a4df879`). All gates green.
-- [x] **Phase 2 — done, implemented & user-reviewed, staged, not yet committed.**
-  All schemas/errors in `src/domain/`, `Result` in `src/core/result.ts`,
-  decode tests for every schema.
-- [x] **Phase 3 — done, implemented, awaiting user review & commit.** All pure
-  calculations in `src/core/` with one test file each; gates green (128 tests,
-  100% line coverage, 100% type coverage). Implementation notes / deviations:
+- [x] **Phase 2 — done, committed** (`ea0e9b5`). All schemas/errors in
+  `src/domain/`, `Result` in `src/core/result.ts`, decode tests for every
+  schema.
+- [x] **Phase 3 — done, committed** (`a6c61d7`). All pure calculations in
+  `src/core/` with one test file each; gates green (128 tests, 100% line
+  coverage, 100% type coverage). Implementation notes / deviations:
   - Added `picomatch` (+ `@types/picomatch` dev) for pure glob matching, as
     the plan allowed.
   - Hashing/fingerprinting take an injected `HashFn` — the core cannot import
