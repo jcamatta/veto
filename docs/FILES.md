@@ -28,9 +28,12 @@ added, edited, renamed, or deleted.**
   config format, re-run behavior (replay + baseline), escape hatches,
   outputs, sandboxing.
 - `.gitignore` — excludes node_modules, dist, coverage, logs, .env.
-- `.husky/pre-commit` — pre-commit gate: branch check and commit-size budget
-  first, then lint, typecheck, tests with coverage, type coverage, build +
-  dogfood (`veto .veto/ --staged`).
+- `.husky/pre-commit` — pre-commit gate: unsets
+  `GIT_DIR`/`GIT_WORK_TREE`/`GIT_INDEX_FILE` (hooks inherit them; the test
+  suite's temp-repo git calls would otherwise hit the real repo and its
+  index from a linked worktree), then branch check and
+  commit-size budget, then lint, typecheck, tests with coverage, type
+  coverage, build + dogfood (`veto .veto/ --staged`).
 - `.husky/check-branch.sh` — rejects commits from `main`, a detached HEAD, or
   any branch not named per the Conventional Branch spec
   (`<type>/<description>`); merge commits into `main` pass.
@@ -267,7 +270,8 @@ added, edited, renamed, or deleted.**
   `GitError` ("not a git repository", CLI misuse).
 - `src/cli/prepare.ts` — `prepare`: `CliArgs` + repo root → the engine's
   `RunReviewInput` plus the runs dir; resolves targets (positional +
-  `--config`, none → `ConfigError`), loads configs, anchors
+  `--config`, none → `<repoRoot>/.veto` when that directory exists,
+  otherwise `ConfigError` pointing at `veto init`), loads configs, anchors
   `<base>/runs` and the `<base>/ignore` suppression file next to the
   configs, and fills `RunSettings` (sha1, default timeout).
 - `src/cli/layers.ts` — `productionLayers`: merges the production adapters
@@ -438,12 +442,14 @@ added, edited, renamed, or deleted.**
   a subdirectory of real throwaway repos, `GitError` outside a repo.
 - `test/cli/prepare.test.ts` — run-input assembly from a positional dir vs
   `--config` files (runs-dir anchoring, merge), flag propagation, ignore-file
-  suppressions, and `ConfigError`s (no targets, missing path, bad
-  fingerprints).
+  suppressions, the `.veto/` default (applied when no target is given,
+  beaten by explicit targets), and `ConfigError`s (no targets and no
+  `.veto/`, missing path, bad fingerprints).
 - `test/cli/command.test.ts` — end-to-end CLI runs in real temp git repos
   with an injected fake SDK query (zero credits): exit 0 clean / warnings,
-  exit 1 on error findings, projections written, repeated `--config`, exit 2
-  misuse (no repo, missing config, no targets, invalid flag), `--help`.
+  exit 1 on error findings, projections written, repeated `--config`, the
+  bare `veto --staged` default to `.veto/`, exit 2 misuse (no repo, missing
+  config, no targets and no `.veto/`, invalid flag), `--help`.
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.

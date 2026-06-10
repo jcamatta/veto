@@ -41,13 +41,13 @@ it exists — `npx veto --staged` just works.
 
 ## Steps
 
-- [ ] 1. `src/cli/prepare.ts`: default the empty target list to
+- [x] 1. `src/cli/prepare.ts`: default the empty target list to
   `<repoRoot>/.veto` when that directory exists; improved error otherwise.
-- [ ] 2. Tests: `test/cli/prepare.test.ts` (default applied; explicit
+- [x] 2. Tests: `test/cli/prepare.test.ts` (default applied; explicit
   targets win; improved error without `.veto/`) and
   `test/cli/command.test.ts` e2e (bare `veto --staged` reviews using
   `.veto/`; exit 2 in a repo without `.veto/`).
-- [ ] 3. Docs: README Usage (`npx veto --staged` as the short form),
+- [x] 3. Docs: README Usage (`npx veto --staged` as the short form),
   SPEC §3 CLI surface, FILES.md descriptions touched by the change.
 - [ ] 4. Optional polish, same branch: `veto init` and the README hook line
   can advertise the short `npx veto --staged` form (keep `.veto/` in the

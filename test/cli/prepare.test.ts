@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Effect, Option } from 'effect'
@@ -39,19 +39,31 @@ const args = (overrides: Partial<CliArgs>): CliArgs => ({
   ...overrides
 })
 
-const run = (cliArgs: CliArgs): Promise<RunReviewInput> =>
+const runAt = (input: {
+  readonly cliArgs: CliArgs
+  readonly repoRoot: string
+}): Promise<RunReviewInput> =>
   Effect.runPromise(
-    prepare({ args: cliArgs, repoRoot: '/repo' }).pipe(
+    prepare({ args: input.cliArgs, repoRoot: input.repoRoot }).pipe(
+      Effect.provide(NodeContext.layer)
+    )
+  )
+
+const run = (cliArgs: CliArgs): Promise<RunReviewInput> =>
+  runAt({ cliArgs, repoRoot: '/repo' })
+
+const runErrorAt = (input: {
+  readonly cliArgs: CliArgs
+  readonly repoRoot: string
+}): Promise<ConfigError> =>
+  Effect.runPromise(
+    Effect.flip(prepare({ args: input.cliArgs, repoRoot: input.repoRoot })).pipe(
       Effect.provide(NodeContext.layer)
     )
   )
 
 const runError = (cliArgs: CliArgs): Promise<ConfigError> =>
-  Effect.runPromise(
-    Effect.flip(prepare({ args: cliArgs, repoRoot: '/repo' })).pipe(
-      Effect.provide(NodeContext.layer)
-    )
-  )
+  runErrorAt({ cliArgs, repoRoot: '/repo' })
 
 describe('prepare', () => {
   it('builds the run input from a positional config directory', async () => {
@@ -118,10 +130,32 @@ describe('prepare', () => {
     ])
   })
 
-  it('fails with ConfigError when no configs are given', async () => {
+  it('defaults to <repoRoot>/.veto when no target is given', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'veto-prepare-root-'))
+    mkdirSync(join(root, '.veto'))
+    writeFileSync(join(root, '.veto', 'architect.yaml'), configYaml)
+    const prepared = await runAt({ cliArgs: args({}), repoRoot: root })
+    expect(prepared.reviewers.map((r) => r.config.name)).toEqual(['architect'])
+    expect(prepared.settings.runsDir).toBe(join(root, '.veto', 'runs'))
+  })
+
+  it('prefers explicit targets over the .veto default', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'veto-prepare-root-'))
+    mkdirSync(join(root, '.veto'))
+    writeFileSync(join(root, '.veto', 'architect.yaml'), configYaml)
+    const dir = configDir()
+    const prepared = await runAt({
+      cliArgs: args({ dir: Option.some(dir) }),
+      repoRoot: root
+    })
+    expect(prepared.settings.runsDir).toBe(join(dir, 'runs'))
+  })
+
+  it('fails with ConfigError when no configs are given and .veto is absent', async () => {
     const error = await runError(args({}))
     expect(error._tag).toBe('ConfigError')
-    expect(error.message).toContain('no reviewer configs given')
+    expect(error.message).toContain('no reviewer configs found')
+    expect(error.message).toContain('veto init')
   })
 
   it('fails with ConfigError when the config path does not exist', async () => {

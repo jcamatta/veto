@@ -41,6 +41,7 @@ configs and never calls the model.
 
 ```bash
 veto init                                     # scaffold .veto/ for this repo
+veto --staged                                 # short form: defaults to <repo-root>/.veto/
 veto .veto/                                   # all configs in a dir
 veto --config=.veto/architect.yaml            # one reviewer
 veto --config=a.yaml --config=b.yaml              # several
