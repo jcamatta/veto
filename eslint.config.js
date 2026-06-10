@@ -90,6 +90,26 @@ const config = tseslint.config(
     rules: limitsRules
   },
   {
+    files: ['src/core/**/*.ts', 'src/domain/**/*.ts', 'src/ports/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['node:*'],
+              message: 'The functional core must not import node builtins.'
+            },
+            {
+              group: ['@anthropic-ai/*'],
+              message: 'The functional core must not import the agent SDK.'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     files: ['test/**/*.ts'],
     rules: {
       'functional/no-throw-statements': 'off',

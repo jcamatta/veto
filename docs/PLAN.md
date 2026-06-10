@@ -50,7 +50,32 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     (`@eslint-community/eslint-comments/no-use` banning `eslint-disable*`,
     `ban-ts-comment` banning every `@ts-*` directive); added
     `@eslint-community/eslint-plugin-eslint-comments` dev dependency.
-- [ ] Phase 5 — production adapters.
+- [x] **Phase 5 — done, awaiting commit.** Production adapters in
+  `src/adapters/` (one file each: `command-git`, `fs-run-store`,
+  `terminal-reporter`, `sdk-agent`, `config-loader`, plus `sha1` and
+  `system-clock`); gates green (180 tests, 99.8% line / 99.9% type coverage).
+  Implementation notes / deviations:
+  - SDK permission API verified against the installed
+    `@anthropic-ai/claude-agent-sdk`: the option is `canUseTool`
+    (`(toolName, input, opts) => Promise<PermissionResult>` with
+    `behavior: 'allow' | 'deny'`), wired to the injected pure policy. Policy
+    denials are pushed onto an Effect `Queue` and interleaved into the
+    returned stream as `AgentDenial` items; `settingSources: []` keeps runs
+    deterministic; all failures map to `AgentUnavailable` (fail-open input).
+  - The SDK `query` function is injectable (`queryFn` option) so the adapter's
+    full behavior is tested with zero credits (acceptance criterion 9).
+  - Added `@types/node` (dev) and set tsconfig `types: ["node"]` for
+    `node:crypto` in the sha1 adapter; compensated with an eslint
+    `no-restricted-imports` ban on `node:*`/`@anthropic-ai/*` inside
+    `src/core|domain|ports` so the hexagon stays enforced by lint.
+  - `Reporter` rides `@effect/platform` `Terminal` (`display` is undecorated
+    stdout, trivially fakeable) instead of `console`; the pure pretty renderer
+    lives in `src/core/pretty.ts` next to the other projection renderers.
+  - `commandGit` takes an optional `cwd` so tests can target throwaway repos;
+    empty repo → sentinel head with the unborn branch name from
+    `symbolic-ref`; detached HEAD falls back to `rev-parse --abbrev-ref`.
+  - `fs-run-store` prunes HEAD dirs by mtime (newest N kept) and treats
+    unreadable/corrupt baseline or record files as null (no baseline).
 - [ ] Phase 6 — pipeline orchestration.
 - [ ] Phase 7 — CLI.
 - [ ] Phase 8 — hardening, dogfood & acceptance.
