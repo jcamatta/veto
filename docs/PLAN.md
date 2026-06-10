@@ -102,7 +102,8 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     projections).
   - Fail-open writes no `record.json`/`baseline.json` (a failed run must
     not feed the replay cache); only the `ReviewerFailed` event is logged.
-- [x] **Phase 7 — done, awaiting review/commit.** The CLI in `src/cli/`
+- [x] **Phase 7 — done, committed** (`7918517`; the `normalizeSnippet`
+  idempotence fix landed separately as `23cb939`). The CLI in `src/cli/`
   (`options`, `repo-root`, `prepare`, `layers`, `command`) plus the
   `src/cli.ts` entry point; `tsup` build verified (`dist/cli.js` runs:
   skip-path review exit 0, `--help`/`--version` exit 0, bad flag exit 2);
