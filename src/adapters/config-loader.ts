@@ -1,6 +1,7 @@
 import { FileSystem, Path } from '@effect/platform'
 import { Array as Arr, Effect, Order, Schema } from 'effect'
 import { parse } from 'yaml'
+import { isYamlFile } from '../core/yaml-file.js'
 import { configError, type ConfigError } from '../domain/errors.js'
 import { ReviewerConfig } from '../domain/reviewer-config.js'
 
@@ -15,9 +16,6 @@ type LoaderEnv = {
   readonly path: Path.Path
 }
 
-const isYaml = (name: string): boolean =>
-  name.endsWith('.yaml') || name.endsWith('.yml')
-
 const describeError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
@@ -29,7 +27,7 @@ const listConfigs =
         configError(`cannot read config directory: ${target}`)
       ),
       Effect.map((names) =>
-        Arr.sort(names.filter(isYaml), Order.string).map((name) =>
+        Arr.sort(names.filter(isYamlFile), Order.string).map((name) =>
           env.path.join(target, name)
         )
       )

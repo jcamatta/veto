@@ -113,6 +113,8 @@ added, edited, renamed, or deleted.**
   commented starter `.veto/architect.yaml` text (cost-tuned defaults,
   bounded-reading prompt, stack-shaped placeholder rules); plus the
   `agentSnippet` CLAUDE.md feedback line.
+- `src/core/yaml-file.ts` — `isYamlFile`: the shared `.yaml`/`.yml` filename
+  predicate used by config discovery and `veto init`'s clobber check.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
   separator unification, dot-segment collapsing, drive-letter lowering,
   `isAbsolutePath`, and `resolveWithin` (resolve against a root).
@@ -256,8 +258,13 @@ added, edited, renamed, or deleted.**
   (command git, sdk agent, fs run store, terminal reporter, system clock)
   for a given repo root + runs dir; optional `queryFn` pass-through so CLI
   tests spend zero credits.
+- `src/cli/init-command.ts` — `runInit`: the `veto init` shell — resolve the
+  repo root, refuse when `.veto/` already has configs, detect the stack from
+  `package.json`, write the starter config, idempotently wire
+  `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
-  prepare → `runReview` → exit with the run's code) plus exit-code mapping
+  prepare → `runReview` → exit with the run's code) with the `init`
+  subcommand wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -408,6 +415,9 @@ added, edited, renamed, or deleted.**
   (unavailable, double parse failure, timeout) with retry recovery,
   tool-call denials incl. strict scope, and runtime-mode rejection
   (acceptance criteria 2–9).
+- `test/cli/init-command.test.ts` — end-to-end `veto init` in real temp git
+  repos: starter scaffolding, electron-shaped detection, hook append and
+  idempotent no-op, refusal on existing configs, exit 2 outside a repo.
 - `test/cli/repo-root.test.ts` — toplevel resolution from the repo root and
   a subdirectory of real throwaway repos, `GitError` outside a repo.
 - `test/cli/prepare.test.ts` — run-input assembly from a positional dir vs

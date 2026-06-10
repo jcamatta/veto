@@ -9,6 +9,7 @@ import { Effect } from 'effect'
 import type { QueryFn } from '../adapters/sdk-agent.js'
 import type { ConfigError, GitError } from '../domain/errors.js'
 import { runReview } from '../engine/run-review.js'
+import { runInit } from './init-command.js'
 import { productionLayers } from './layers.js'
 import { cliOptions, type CliArgs } from './options.js'
 import { prepare } from './prepare.js'
@@ -58,8 +59,15 @@ const misuse =
   (error: ConfigError | GitError): Effect.Effect<never> =>
     Effect.logError(error.message).pipe(Effect.zipRight(deps.exit(2)))
 
+const initSubcommand = (deps: CliDeps) =>
+  Command.make('init', {}, () =>
+    runInit(deps.cwd ?? null).pipe(Effect.flatMap(() => deps.exit(0)))
+  )
+
 const makeCli = (deps: CliDeps): Cli => {
-  const command = Command.make('veto', cliOptions, handler(deps))
+  const command = Command.make('veto', cliOptions, handler(deps)).pipe(
+    Command.withSubcommands([initSubcommand(deps)])
+  )
   const run = Command.run(command, { name: 'veto', version })
   return (argv) =>
     run(argv).pipe(

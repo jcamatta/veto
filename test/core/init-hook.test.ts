@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { appendHookLine, hookLine } from '../../src/core/init-hook.js'
+import { appendHookLine } from '../../src/core/init-hook.js'
+
+const hookLine = 'npx veto .veto/ --staged'
 
 describe('appendHookLine', () => {
   it('appends the hook line to an existing hook', () => {
