@@ -31,8 +31,9 @@ added, edited, renamed, or deleted.**
 - `.husky/pre-commit` — pre-commit gate: lint, typecheck, tests with coverage,
   type coverage, then build + dogfood (`veto .veto/ --staged`).
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
-  judgment rules (one file one responsibility, FILES.md currency, effects at
-  the edges, no duplication, behavior-focused tests) over `src`/`test`.
+  judgment rules (one file one responsibility, effects at the edges, no
+  duplication, behavior-focused tests) over `src`/`test`; documentation is
+  out of its scope and it is told to read sparingly (token cost).
 
 ## docs/
 
@@ -43,6 +44,10 @@ added, edited, renamed, or deleted.**
 - `docs/ACCEPTANCE.md` — the v1 acceptance walk: each SPEC §14 criterion
   mapped to its automated tests plus the manual real-model verification
   results, and the final quality-gate audit.
+- `docs/BENCH.md` — design contract for the real-model benchmark harness
+  (`npm run bench`): metrics, fixtures, matrix, executable budgets
+  (wall time / turns / cost / finding stability / fail-open rate), and the
+  `apiKeySource` accounting of whose credit each run burns.
 - `docs/FILES.md` — this document.
 
 ## src/core/ — pure calculations (functional core, no `node:*`/git/SDK imports)
