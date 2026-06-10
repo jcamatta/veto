@@ -103,6 +103,16 @@ added, edited, renamed, or deleted.**
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
   rule citations instead of trusting the model to echo them.
+- `src/core/init-detect.ts` — `detectStack`: `package.json` text → the repo's
+  stack (`electron` > `next` > `react` > `node`), falling back to `node` on a
+  missing or malformed manifest.
+- `src/core/init-hook.ts` — `hookLine` (`npx veto .veto/ --staged`) and
+  `appendHookLine`: idempotent append of the hook line to a pre-commit file's
+  text (no change when already present).
+- `src/core/init-template.ts` — `renderStarterConfig`: detected stack → the
+  commented starter `.veto/architect.yaml` text (cost-tuned defaults,
+  bounded-reading prompt, stack-shaped placeholder rules); plus the
+  `agentSnippet` CLAUDE.md feedback line.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
   separator unification, dot-segment collapsing, drive-letter lowering,
   `isAbsolutePath`, and `resolveWithin` (resolve against a root).
@@ -311,6 +321,14 @@ added, edited, renamed, or deleted.**
   schema preserved.
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
   Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
+- `test/core/init-detect.test.ts` — stack-detection table: electron/next/react
+  precedence, plain-library and missing/malformed-manifest fallbacks to node.
+- `test/core/init-hook.test.ts` — idempotent hook append: appends with and
+  without a trailing newline, empty file, no-op when already wired.
+- `test/core/init-template.test.ts` — every stack's starter renders YAML that
+  decodes as `ReviewerConfig`, carries the cost-tuned defaults, shapes
+  paths/rules to the stack, and instructs bounded reading; the agent snippet
+  points at `latest.json`.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
   drive letters, absolute detection, root resolution.
 - `test/core/tool-policy.test.ts` — allowlist, repo-root containment,
