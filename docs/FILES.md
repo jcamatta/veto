@@ -211,9 +211,10 @@ added, edited, renamed, or deleted.**
   fingerprint findings, filter suppressions, diff against the baseline,
   emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
   the new baseline and run record.
-- `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: glob-scope skip
-  → diff scoped to the reviewer's globs (prompt and Layer-1 diff hash both
-  use the scoped diff) → replay check (record hash comparison) → live agent
+- `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: diff scoped to
+  the reviewer's globs once (skip when nothing survives; prompt and Layer-1
+  diff hash both use the scoped diff) → replay check (record hash
+  comparison) → live agent
   session with injected tool policy and per-reviewer knobs (model/effort/
   maxTurns from the config, config timeout overriding the run timeout), and
   typed fail-open

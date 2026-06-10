@@ -1,7 +1,6 @@
 import { DateTime, Duration, Effect } from 'effect'
 import { scopeDiff } from '../core/diff-scope.js'
 import { findingsSchemaFor } from '../core/findings-schema.js'
-import { scopeFiles } from '../core/glob-scope.js'
 import { configHash, diffHash } from '../core/hashing.js'
 import { buildPrompt } from '../core/prompt.js'
 import { filterSuppressed } from '../core/suppression.js'
@@ -17,6 +16,7 @@ import {
 } from '../domain/review-event.js'
 import type { RunKey } from '../domain/run-key.js'
 import type { RunRecord } from '../domain/run-record.js'
+import type { StagedDiff } from '../domain/staged-diff.js'
 import { Agent, type ToolCallRequest } from '../ports/agent.js'
 import { ReviewClock } from '../ports/clock.js'
 import { RunStore } from '../ports/run-store.js'
@@ -42,6 +42,7 @@ type Dispatch = {
   readonly key: RunKey
   readonly record: RunRecord | null
   readonly baseline: Baseline | null
+  readonly diff: StagedDiff
 }
 
 
@@ -188,10 +189,9 @@ const dispatch = (
   Agent | RunStore | ReviewClock
 > => {
   const settings = input.ctx.settings
-  const diff = scopeDiff({ config: input.reviewer.config, diff: input.ctx.diff })
   const dHash = diffHash({
     hash: settings.hash,
-    diffText: diff.diffText
+    diffText: input.diff.diffText
   })
   const cHash = configHash({
     hash: settings.hash,
@@ -209,7 +209,7 @@ const dispatch = (
     key: input.key,
     attempt: hit !== null ? hit.attempt : (input.record?.attempt ?? 0) + 1,
     baseline: input.baseline,
-    diff,
+    diff: input.diff,
     diffHash: dHash,
     configHash: cHash
   }
@@ -230,8 +230,8 @@ const runReviewer =
       branch: ctx.branch,
       reviewer: reviewer.config.name
     }
-    const scope = scopeFiles({ config: reviewer.config, files: ctx.diff.files })
-    if (!scope.matched) {
+    const diff = scopeDiff({ config: reviewer.config, diff: ctx.diff })
+    if (diff.files.length === 0) {
       return skipped(key)
     }
     return RunStore.pipe(
@@ -242,7 +242,7 @@ const runReviewer =
         })
       ),
       Effect.flatMap(({ record, baseline }) =>
-        dispatch({ ctx, reviewer, key, record, baseline })
+        dispatch({ ctx, reviewer, key, record, baseline, diff })
       )
     )
   }
