@@ -116,7 +116,7 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     mutation — `functional/immutable-data` stays clean).
   - `--staged` is accepted but is a documented no-op: v1 always reviews the
     staged diff (the help text says so).
-  - The `.reviewer/ignore` suppression file and the `runs/` dir are anchored
+  - The `.veto/ignore` suppression file and the `runs/` dir are anchored
     next to the configs: the positional directory when given, else the
     first `--config` file's directory.
   - `repoRoot` comes from `git rev-parse --show-toplevel` (a CLI-local
@@ -131,11 +131,11 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
 - [x] **Phase 8 — done, committed** (`49de9f0`). All 9 acceptance criteria walked in
   [ACCEPTANCE.md](ACCEPTANCE.md) (automated tests + manual real-model runs in
   a throwaway repo: blocking find, replay, suppression-on-replay, baseline
-  resolution); dogfood wired (`.reviewer/architect.yaml`, build + veto run in
+  resolution); dogfood wired (`.veto/architect.yaml`, build + veto run in
   `.husky/pre-commit`, CLAUDE.md feedback-loop line); README written; gates
   green (231 tests, 99.2% line / 99.94% type coverage).
   Implementation notes / deviations:
-  - The hook dogfoods via `npm run build && node dist/cli.js .reviewer/
+  - The hook dogfoods via `npm run build && node dist/cli.js .veto/
     --staged` (not `npx veto`) because the package is not installed into
     itself; the skip-path run costs ~1.3 s, a real review ~16 s.
   - Criterion 2 measured as marginal cost: a second non-matching reviewer
@@ -196,12 +196,12 @@ Goal: the most-tested code in the repo, zero imports of `node:*`/git/SDK.
 - Replay-key hashing (diff text + config content) and diff hashing.
 - Fingerprinting: snippet normalization (strip whitespace/line numbers) +
   `sha1(reviewer + rule + file + normalizedSnippet)`.
-- Suppression filtering (`.reviewer/ignore` parsing + drop matching findings).
+- Suppression filtering (`.veto/ignore` parsing + drop matching findings).
 - Baseline diffing: resolved / persisting / new (by fingerprint).
 - Prompt building: systemPrompt + rules + diff + baseline + Layer-2 instructions
   + strict-JSON output instruction.
 - Tool-call policy function (ring 3): deny-by-default, repo-root containment,
-  deny `.reviewer/runs/`, strict scope option.
+  deny `.veto/runs/`, strict scope option.
 - Event reducer `reduce(state, event) -> state`; severity → exit code.
 - Projection renderers: `latest.json` shape and `latest.md` markdown.
 - Property tests (fast-check) on reducer and fingerprint normalization.
@@ -221,7 +221,7 @@ Goal: real I/O at the edges, each adapter one file.
 
 - `Git` via `@effect/platform` `Command` (`diff --staged -U15`, `--name-only`,
   HEAD, branch, `git show :0:path`; empty-repo handling).
-- `RunStore` on FileSystem under `.reviewer/runs/` (self `.gitignore` with `*`,
+- `RunStore` on FileSystem under `.veto/runs/` (self `.gitignore` with `*`,
   JSONL append, baseline/record/latest read-write, prune to last 10 HEAD keys).
 - `Reporter`: terminal pretty + JSON formats.
 - `Agent` via `@anthropic-ai/claude-agent-sdk` `query()` →
@@ -261,7 +261,7 @@ Goal: the user-facing command via `@effect/cli`.
 Goal: v1 done per SPEC §14.
 
 - Walk all 9 acceptance criteria with explicit tests or manual verification.
-- End-to-end dogfood: a `.reviewer/` config in this repo, hook line in
+- End-to-end dogfood: a `.veto/` config in this repo, hook line in
   `.husky/pre-commit` (after eslint), CLAUDE.md feedback-loop line.
 - README (install, usage, config format, escape hatches).
 - Coverage and type-coverage audits; final FILES.md sweep.
@@ -303,7 +303,7 @@ reference SDK concepts.
    our own config: `model: claude-sonnet-4-6`, `effort: medium` (cheap,
    fast, less runaway thinking on a $20 plan). Spec: §3, §4, §8.
 4. **Rename `.reviewer` → `.veto`.** The tool policy denies the
-   settings-provided runs dir rather than the hardcoded `.reviewer/runs/`
+   settings-provided runs dir rather than a hardcoded `.reviewer/runs`
    name; dogfood dir, hook line, CLAUDE.md feedback line, README, SPEC all
    move to `.veto/`. The CLI already accepts any directory. Spec: §3, §6, §8.
 5. **`claude_code` preset system prompt.** `buildPrompt` splits system vs

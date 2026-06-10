@@ -73,16 +73,16 @@ npm i -D veto        # version pinned per repo, like eslint
 ```bash
 # .husky/pre-commit
 npx eslint --fix ...           # deterministic checks FIRST (cheap, exact)
-npx veto .reviewer/ --staged
+npx veto .veto/ --staged
 ```
 
 ### CLI surface
 
 ```bash
-veto --config=.reviewer/architect.yaml            # one reviewer
+veto --config=.veto/architect.yaml            # one reviewer
 veto --config=a.yaml --config=b.yaml              # several
-veto .reviewer/                                   # all configs in a dir
-veto .reviewer/ --staged                          # staged diff only
+veto .veto/                                   # all configs in a dir
+veto .veto/ --staged                          # staged diff only
 veto ... --format=pretty|json                     # output format
 veto ... --no-cache                               # bypass Layer 1 replay
 ```
@@ -100,14 +100,14 @@ committed, see §6) and `git commit --no-verify` (emergency).
 
 ### Coding-agent feedback loop (decided)
 
-The hook writes `.reviewer/runs/latest.json` on every run. The project's `CLAUDE.md`
+The hook writes `.veto/runs/latest.json` on every run. The project's `CLAUDE.md`
 contains one line:
 
-> If a commit is blocked by the reviewer, read `.reviewer/runs/latest.json` and fix the
+> If a commit is blocked by the reviewer, read `.veto/runs/latest.json` and fix the
 > findings, then commit again.
 
 Files are more reliable than parsing hook stdout (which truncates/interleaves). Humans
-get the same content as `.reviewer/runs/latest.md`, and the terminal output ends with a
+get the same content as `.veto/runs/latest.md`, and the terminal output ends with a
 pointer to it.
 
 ### Consumption surfaces (the engine's contract is *findings JSON + exit code*)
@@ -123,7 +123,7 @@ pointer to it.
 ## 4. Reviewer config (one YAML per reviewer, committed)
 
 ```yaml
-# .reviewer/architect.yaml
+# .veto/architect.yaml
 name: architect
 mode: static                  # "runtime" reserved in schema, rejected at runtime in v1
 paths:                        # trigger globs — no staged match ⇒ reviewer doesn't run
@@ -154,7 +154,7 @@ Design rules for configs:
 ### Suppressions (committed)
 
 ```
-# .reviewer/ignore — one fingerprint per line, '#' comments allowed
+# .veto/ignore — one fingerprint per line, '#' comments allowed
 a94f3c21e0b7  # architect: false positive about repository pattern in src/jobs/retry.ts
 ```
 
@@ -205,7 +205,7 @@ Computed by the wrapper: `fingerprint = sha1(reviewer + rule + file + normalized
 (normalize: strip whitespace/line numbers). Uses:
 
 - match findings across re-runs (baseline resolution checking isn't prose comparison),
-- human-driven suppression via `.reviewer/ignore` — engine drops suppressed findings
+- human-driven suppression via `.veto/ignore` — engine drops suppressed findings
   before output, forever. The judgment is human; the fingerprint is just a stable handle.
 
 ---
@@ -216,7 +216,7 @@ All generated artifacts live in the repo, readable by human and agent alike. No 
 directory.
 
 ```
-.reviewer/
+.veto/
   architect.yaml                committed — config
   frontend.yaml                 committed — config
   ignore                        committed — fingerprint suppressions
@@ -234,8 +234,9 @@ directory.
   project's root ignore file. Zero setup; also makes writing during a hook safe
   (ignored files cannot leak into the commit). The engine never runs `git add`.
 - **Pruning**: on each run keep only the last **10** HEAD keys; delete older ones.
-- The reviewer agent's tool policy **denies reads into `.reviewer/runs/`** (its only
-  legitimate memory is the injected baseline; don't let it wander into old transcripts).
+- The reviewer agent's tool policy **denies reads into the runs dir** (the
+  settings-provided directory, `.veto/runs/` by convention — its only legitimate
+  memory is the injected baseline; don't let it wander into old transcripts).
 
 ---
 
@@ -265,7 +266,7 @@ are in its scope.
 3. **Per-call veto (the hard sandbox)**: the SDK's permission callback / `PreToolUse`
    hook runs a **pure policy function** over every tool call, deny-by-default:
    - reject any path that resolves outside the repo root,
-   - reject reads into `.reviewer/runs/`,
+   - reject reads into the settings-provided runs dir (`.veto/runs/` by convention),
    - (strict option) reject reads outside the reviewer's declared scope.
    `mode: runtime` later = a different policy function + wider allowlist, same engine.
    ⚠️ Verify the current SDK option name (`canUseTool` vs hooks config) against
@@ -357,7 +358,7 @@ the event reducer · projection renderers (JSON + markdown).
 |-----------------|----------------------------------------------------|-----------------------------|---------------------|
 | `Git`           | stagedDiff, stagedFiles, head, branch, stagedFile  | CLI via `@effect/platform` `Command` | fixture     |
 | `Agent`         | `run(prompt, policy, limits): Stream<AgentEvent>`  | `@anthropic-ai/claude-agent-sdk` `query()` wrapped with `Stream.fromAsyncIterable` | scripted stream, zero credits |
-| `RunStore`      | appendEvent, readBaseline, writeProjections, prune | FileSystem under `.reviewer/runs/` | in-memory    |
+| `RunStore`      | appendEvent, readBaseline, writeProjections, prune | FileSystem under `.veto/runs/` | in-memory    |
 | `Reporter`      | emit(projection, format)                           | terminal pretty / JSON      | collector           |
 | `Clock`         | now                                                | system                      | fixed               |
 
@@ -410,7 +411,7 @@ back from disk. Nothing untrusted crosses into the core undecoded.
 ```
 pre-commit
   └─ eslint (deterministic, first)
-  └─ veto .reviewer/ --staged
+  └─ veto .veto/ --staged
        1. load + decode configs            (ConfigLoader, Schema)
        2. git: staged diff, files, HEAD, branch
        3. per reviewer:
@@ -437,15 +438,15 @@ pre-commit
 
 ## 14. Acceptance criteria for v1
 
-1. `npx veto .reviewer/ --staged` in a repo with one config reviews a staged
+1. `npx veto .veto/ --staged` in a repo with one config reviews a staged
    diff and writes `latest.json`/`latest.md` + event JSONL.
 2. Reviewer with non-matching `paths` adds < 100 ms and no model call.
 3. Re-run with identical diff+config replays from cache (no model call).
 4. Re-run after a fix: baseline injected; previously-accepted unchanged code is not
    re-flagged; resolved findings reported as resolved.
-5. Fingerprint added to `.reviewer/ignore` permanently suppresses that finding.
+5. Fingerprint added to `.veto/ignore` permanently suppresses that finding.
 6. Agent unavailable / timeout / double parse failure ⇒ warning + exit 0 (fail open).
 7. An `error` finding ⇒ exit 1 and the commit is blocked; warnings alone ⇒ exit 0.
-8. Tool-call policy: a `Read` outside repo root or into `.reviewer/runs/` is denied and
+8. Tool-call policy: a `Read` outside repo root or into `.veto/runs/` is denied and
    logged as `ToolCallDenied`.
 9. Whole engine testable with fixture adapters — full test suite spends zero credits.

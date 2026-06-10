@@ -15,6 +15,7 @@ import {
 const policy: AgentRunInput['policy'] = (call) =>
   evaluateToolCall({
     repoRoot: '/repo',
+    runsDir: '.veto/runs',
     tool: call.tool,
     path: call.path === null ? null : `/repo/${call.path}`,
     scope: null
@@ -49,7 +50,7 @@ describe('scriptedAgent', () => {
     const script: readonly ScriptStep[] = [
       { _tag: 'CallTool', tool: 'Read', path: 'src/a.ts' },
       { _tag: 'CallTool', tool: 'Bash', path: null },
-      { _tag: 'CallTool', tool: 'Read', path: '.reviewer/runs/latest.json' }
+      { _tag: 'CallTool', tool: 'Read', path: '.veto/runs/latest.json' }
     ]
     const { layer } = scriptedAgent(script)
     const items = await collect(layer)
@@ -61,7 +62,7 @@ describe('scriptedAgent', () => {
     expect(items[2]).toMatchObject({
       _tag: 'AgentDenial',
       tool: 'Read',
-      path: '.reviewer/runs/latest.json'
+      path: '.veto/runs/latest.json'
     })
   })
 

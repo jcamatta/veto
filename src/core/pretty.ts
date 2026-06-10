@@ -43,7 +43,7 @@ const renderPretty = (projection: LatestProjection): string =>
     projection.blocking
       ? 'BLOCKING: error findings present.'
       : 'Not blocking.',
-    'Full report: .reviewer/runs/latest.md'
+    'Full report: .veto/runs/latest.md'
   ].join('\n')
 
 export { renderPretty }

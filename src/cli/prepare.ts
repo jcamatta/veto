@@ -14,11 +14,6 @@ type PrepareInput = {
   readonly repoRoot: string
 }
 
-type Prepared = {
-  readonly input: RunReviewInput
-  readonly runsDir: string
-}
-
 type PrepareEnv = {
   readonly fs: FileSystem.FileSystem
   readonly path: Path.Path
@@ -70,11 +65,13 @@ const assembleInput = (input: {
   readonly prepare: PrepareInput
   readonly loaded: readonly LoadedConfig[]
   readonly suppressions: SuppressionList
+  readonly runsDir: string
 }): RunReviewInput => ({
   reviewers: input.loaded.map((l) => ({ config: l.config, source: l.source })),
   settings: {
     hash: sha1,
     repoRoot: input.prepare.repoRoot,
+    runsDir: input.runsDir,
     suppressions: input.suppressions,
     noCache: input.prepare.args.noCache,
     strictScope: false,
@@ -91,7 +88,11 @@ const assemble =
   (input: {
     readonly prepare: PrepareInput
     readonly resolved: ResolvedTargets
-  }): Effect.Effect<Prepared, ConfigError, FileSystem.FileSystem | Path.Path> =>
+  }): Effect.Effect<
+    RunReviewInput,
+    ConfigError,
+    FileSystem.FileSystem | Path.Path
+  > =>
     Effect.all({
       loaded: Effect.forEach(input.resolved.targets, loadConfigs).pipe(
         Effect.map((lists) => lists.flat())
@@ -100,21 +101,25 @@ const assemble =
     }).pipe(
       Effect.flatMap(({ loaded, base }) =>
         readSuppressions(env)(env.path.join(base, 'ignore')).pipe(
-          Effect.map((suppressions) => ({
-            input: assembleInput({
+          Effect.map((suppressions) =>
+            assembleInput({
               prepare: input.prepare,
               loaded,
-              suppressions
-            }),
-            runsDir: env.path.join(base, 'runs')
-          }))
+              suppressions,
+              runsDir: env.path.join(base, 'runs')
+            })
+          )
         )
       )
     )
 
 const prepare = (
   input: PrepareInput
-): Effect.Effect<Prepared, ConfigError, FileSystem.FileSystem | Path.Path> =>
+): Effect.Effect<
+  RunReviewInput,
+  ConfigError,
+  FileSystem.FileSystem | Path.Path
+> =>
   Effect.all({
     env: Effect.all({ fs: FileSystem.FileSystem, path: Path.Path }),
     resolved: targetsOf(input.args)
@@ -124,4 +129,4 @@ const prepare = (
     )
   )
 
-export { type PrepareInput, type Prepared, prepare }
+export { type PrepareInput, prepare }

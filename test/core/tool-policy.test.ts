@@ -3,6 +3,7 @@ import { evaluateToolCall } from '../../src/core/tool-policy.js'
 
 const base = {
   repoRoot: 'C:\\repo',
+  runsDir: '.veto/runs',
   tool: 'Read',
   path: 'src/a.ts',
   scope: null
@@ -39,18 +40,36 @@ describe('evaluateToolCall', () => {
     expect(result.allowed).toBe(true)
   })
 
-  it('denies reads into .reviewer/runs/', () => {
-    const dir = evaluateToolCall({ ...base, path: '.reviewer/runs' })
+  it('denies reads into .veto/runs/', () => {
+    const dir = evaluateToolCall({ ...base, path: '.veto/runs' })
     const file = evaluateToolCall({
       ...base,
-      path: '.reviewer/runs/latest.json'
+      path: '.veto/runs/latest.json'
     })
     expect(dir.allowed).toBe(false)
     expect(file.allowed).toBe(false)
   })
 
-  it('allows other .reviewer files', () => {
-    const result = evaluateToolCall({ ...base, path: '.reviewer/ignore' })
+  it('allows other .veto files', () => {
+    const result = evaluateToolCall({ ...base, path: '.veto/ignore' })
+    expect(result.allowed).toBe(true)
+  })
+
+  it('denies the runs dir when given as an absolute path', () => {
+    const result = evaluateToolCall({
+      ...base,
+      runsDir: 'C:\\repo\\.veto\\runs',
+      path: '.veto/runs/latest.json'
+    })
+    expect(result.allowed).toBe(false)
+  })
+
+  it('ignores a runs dir outside the repo root', () => {
+    const result = evaluateToolCall({
+      ...base,
+      runsDir: 'D:\\elsewhere\\runs',
+      path: 'src/a.ts'
+    })
     expect(result.allowed).toBe(true)
   })
 

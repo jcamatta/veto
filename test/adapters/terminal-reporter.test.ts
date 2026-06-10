@@ -56,7 +56,7 @@ describe('terminalReporterLive', () => {
     expect(outputs).toHaveLength(1)
     expect(outputs[0]).toContain('veto — 2026-06-09T14:03:22.000Z')
     expect(outputs[0]).toContain('architect: completed, no findings')
-    expect(outputs[0]).toContain('Full report: .reviewer/runs/latest.md')
+    expect(outputs[0]).toContain('Full report: .veto/runs/latest.md')
   })
 
   it('emits the encoded projection as JSON', async () => {

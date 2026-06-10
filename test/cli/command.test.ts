@@ -33,8 +33,8 @@ const repoWithStagedChange = (): string => {
   writeFileSync(join(dir, 'base.txt'), 'base\n')
   git(dir, ['add', 'base.txt'])
   git(dir, ['commit', '-m', 'initial'])
-  mkdirSync(join(dir, '.reviewer'))
-  writeFileSync(join(dir, '.reviewer', 'architect.yaml'), configYaml)
+  mkdirSync(join(dir, '.veto'))
+  writeFileSync(join(dir, '.veto', 'architect.yaml'), configYaml)
   mkdirSync(join(dir, 'src'))
   writeFileSync(join(dir, 'src', 'a.ts'), 'const x = 1\n')
   git(dir, ['add', 'src/a.ts'])
@@ -92,12 +92,12 @@ describe('makeCli', () => {
     const dir = repoWithStagedChange()
     const result = await runCli({
       cwd: dir,
-      argv: [join(dir, '.reviewer'), '--staged']
+      argv: [join(dir, '.veto'), '--staged']
     })
     expect(result.codes).toEqual([0])
-    const latest = join(dir, '.reviewer', 'runs', 'latest.json')
+    const latest = join(dir, '.veto', 'runs', 'latest.json')
     expect(existsSync(latest)).toBe(true)
-    expect(existsSync(join(dir, '.reviewer', 'runs', 'latest.md'))).toBe(true)
+    expect(existsSync(join(dir, '.veto', 'runs', 'latest.md'))).toBe(true)
     expect(readFileSync(latest, 'utf8')).toContain('"architect"')
   })
 
@@ -105,7 +105,7 @@ describe('makeCli', () => {
     const dir = repoWithStagedChange()
     const result = await runCli({
       cwd: dir,
-      argv: [join(dir, '.reviewer'), '--staged', '--format=json'],
+      argv: [join(dir, '.veto'), '--staged', '--format=json'],
       findings: [errorFinding]
     })
     expect(result.codes).toEqual([1])
@@ -115,7 +115,7 @@ describe('makeCli', () => {
     const dir = repoWithStagedChange()
     const result = await runCli({
       cwd: dir,
-      argv: [join(dir, '.reviewer'), '--staged'],
+      argv: [join(dir, '.veto'), '--staged'],
       findings: [{ ...errorFinding, severity: 'warning' }]
     })
     expect(result.codes).toEqual([0])
@@ -125,7 +125,7 @@ describe('makeCli', () => {
     const dir = repoWithStagedChange()
     const result = await runCli({
       cwd: dir,
-      argv: ['--config', join(dir, '.reviewer', 'architect.yaml')]
+      argv: ['--config', join(dir, '.veto', 'architect.yaml')]
     })
     expect(result.codes).toEqual([0])
   })
@@ -155,7 +155,7 @@ describe('makeCli', () => {
     const dir = repoWithStagedChange()
     const result = await runCli({
       cwd: dir,
-      argv: [join(dir, '.reviewer'), '--format=xml']
+      argv: [join(dir, '.veto'), '--format=xml']
     })
     expect(result.codes).toEqual([2])
   })

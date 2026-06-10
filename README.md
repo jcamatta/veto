@@ -27,13 +27,13 @@ Requires Node >= 20 and a git repository.
 ## Usage
 
 ```bash
-veto .reviewer/                                   # all configs in a dir
-veto --config=.reviewer/architect.yaml            # one reviewer
+veto .veto/                                   # all configs in a dir
+veto --config=.veto/architect.yaml            # one reviewer
 veto --config=a.yaml --config=b.yaml              # several
-veto .reviewer/ --staged                          # staged diff (the default; flag documents intent)
-veto .reviewer/ --format=json                     # machine-readable output (default: pretty)
-veto .reviewer/ --no-cache                        # bypass the exact-replay cache
-veto .reviewer/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
+veto .veto/ --staged                          # staged diff (the default; flag documents intent)
+veto .veto/ --format=json                     # machine-readable output (default: pretty)
+veto .veto/ --no-cache                        # bypass the exact-replay cache
+veto .veto/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
 ```
 
 ### Pre-commit (husky)
@@ -44,7 +44,7 @@ never re-litigates them:
 ```bash
 # .husky/pre-commit
 npx eslint .
-npx veto .reviewer/ --staged
+npx veto .veto/ --staged
 ```
 
 ### Exit codes
@@ -57,10 +57,10 @@ npx veto .reviewer/ --staged
 
 ## Reviewer config
 
-One YAML file per reviewer, committed (conventionally under `.reviewer/`):
+One YAML file per reviewer, committed (conventionally under `.veto/`):
 
 ```yaml
-# .reviewer/architect.yaml
+# .veto/architect.yaml
 name: architect
 mode: static                  # "runtime" is reserved for v2 and rejected today
 model: claude-sonnet-4-6      # optional — opaque string the backend interprets
@@ -107,7 +107,7 @@ it expires automatically when the commit finally lands:
 When the reviewer is wrong:
 
 - **Suppress a finding permanently**: copy its fingerprint into
-  `.reviewer/ignore` (committed; `#` comments allowed):
+  `.veto/ignore` (committed; `#` comments allowed):
 
   ```
   a94f3c21e0b7  # architect: false positive about repository pattern
@@ -117,11 +117,11 @@ When the reviewer is wrong:
 
 ## Outputs
 
-Everything lands under `.reviewer/runs/` (self-gitignored — the engine
+Everything lands under `.veto/runs/` (self-gitignored — the engine
 writes a `.gitignore` containing `*` on first run):
 
 ```
-.reviewer/runs/
+.veto/runs/
   latest.json                 most recent findings, machine-readable
   latest.md                   same content, human-readable
   <headSha>/<reviewer>/
@@ -133,7 +133,7 @@ writes a `.gitignore` containing `*` on first run):
 `latest.json` is the contract for coding agents: add one line to your
 `CLAUDE.md` —
 
-> If a commit is blocked by the reviewer, read `.reviewer/runs/latest.json`
+> If a commit is blocked by the reviewer, read `.veto/runs/latest.json`
 > and fix the findings, then commit again.
 
 ## Sandboxing
@@ -141,7 +141,7 @@ writes a `.gitignore` containing `*` on first run):
 Reviewers are restricted in code, not by prompt: read-only tools
 (`Read`/`Grep`/`Glob`), a turn ceiling and a 90 s per-reviewer timeout, and
 a per-call policy that denies any path outside the repo root or inside
-`.reviewer/runs/`. Denials are logged as `ToolCallDenied` events.
+`.veto/runs/`. Denials are logged as `ToolCallDenied` events.
 
 ## Development
 

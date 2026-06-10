@@ -39,12 +39,12 @@ const handler =
   (args: CliArgs): Effect.Effect<void, ConfigError | GitError, CliEnvironment> =>
     resolveRepoRoot(deps.cwd ?? null).pipe(
       Effect.flatMap((repoRoot) => prepare({ args, repoRoot })),
-      Effect.flatMap(({ input, runsDir }) =>
+      Effect.flatMap((input) =>
         runReview(input).pipe(
           Effect.provide(
             productionLayers({
               repoRoot: input.settings.repoRoot,
-              runsDir,
+              runsDir: input.settings.runsDir,
               ...(deps.queryFn === undefined ? {} : { queryFn: deps.queryFn })
             })
           )

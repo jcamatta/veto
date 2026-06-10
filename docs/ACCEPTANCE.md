@@ -9,7 +9,7 @@ one `layering` reviewer config and a staged cross-layer import
 
 ## 1. End-to-end run writes projections + event log
 
-> `npx veto .reviewer/ --staged` in a repo with one config reviews a staged
+> `npx veto .veto/ --staged` in a repo with one config reviews a staged
 > diff and writes `latest.json`/`latest.md` + event JSONL.
 
 - Tests: `test/cli/command.test.ts` — "reviews a staged diff, writes
@@ -54,7 +54,7 @@ one `layering` reviewer config and a staged cross-layer import
   (acceptance 5)" (filtered output, `FindingSuppressed` event, filtered
   baseline); `test/cli/prepare.test.ts` — ignore-file parsing.
 - Manual (real model): adding the finding's fingerprint to
-  `.reviewer/ignore` turned the replayed blocking run into
+  `.veto/ignore` turned the replayed blocking run into
   `replayed, no findings`, exit 0, zero model calls — suppression applies
   on the replay path too.
 
@@ -78,10 +78,10 @@ one `layering` reviewer config and a staged cross-layer import
 ## 8. Tool-call policy denies escapes and logs them
 
 - Tests: `test/core/tool-policy.test.ts` (allowlist, repo-root
-  containment, `.reviewer/runs/` denial, strict scope);
+  containment, `.veto/runs/` denial, strict scope);
   `test/engine/run-review.test.ts` — "tool-call policy (acceptance 8)"
   (`ToolCallDenied` events for `../outside.txt` and
-  `.reviewer/runs/latest.json`); `test/adapters/sdk-agent.test.ts`
+  `.veto/runs/latest.json`); `test/adapters/sdk-agent.test.ts`
   (the policy wired through the SDK's `canUseTool`, denials interleaved
   into the stream).
 
@@ -99,4 +99,4 @@ one `layering` reviewer config and a staged cross-layer import
 - Type coverage: 99.94 % (threshold 95 %).
 - Lint and typecheck clean; all gates enforced by `.husky/pre-commit`,
   which now also builds and dogfoods `veto` itself against this repo's
-  `.reviewer/architect.yaml`.
+  `.veto/architect.yaml`.

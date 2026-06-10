@@ -3,4 +3,4 @@ npm run typecheck
 npm run coverage
 npm run type-coverage
 npm run build
-node dist/cli.js .reviewer/ --staged
+node dist/cli.js .veto/ --staged

@@ -36,6 +36,7 @@ const repo: FixtureRepo = {
 const baseSettings: RunSettings = {
   hash: fakeHash,
   repoRoot: '/repo',
+  runsDir: '.veto/runs',
   suppressions: { fingerprints: [] },
   noCache: false,
   strictScope: false,
@@ -487,7 +488,7 @@ describe('runReview — tool-call policy (acceptance 8)', () => {
   it('logs denied tool calls as ToolCallDenied events', async () => {
     const scripted = scriptedAgent([
       { _tag: 'CallTool', tool: 'Read', path: '../outside.txt' },
-      { _tag: 'CallTool', tool: 'Read', path: '.reviewer/runs/latest.json' },
+      { _tag: 'CallTool', tool: 'Read', path: '.veto/runs/latest.json' },
       { _tag: 'CallTool', tool: 'Grep', path: 'src/a.ts' },
       sayResult([])
     ])
@@ -499,7 +500,7 @@ describe('runReview — tool-call policy (acceptance 8)', () => {
     expect(denials).toHaveLength(2)
     expect(denials[0]).toMatchObject({ tool: 'Read', path: '../outside.txt' })
     expect(denials[1]).toMatchObject({
-      path: '.reviewer/runs/latest.json'
+      path: '.veto/runs/latest.json'
     })
   })
 

@@ -83,7 +83,7 @@ describe('renderPretty', () => {
   it('marks blocking runs and points at the full report', () => {
     const text = renderPretty(projection)
     expect(text).toContain('BLOCKING: error findings present.')
-    expect(text).toContain('Full report: .reviewer/runs/latest.md')
+    expect(text).toContain('Full report: .veto/runs/latest.md')
   })
 
   it('marks non-blocking runs', () => {

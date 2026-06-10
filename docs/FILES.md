@@ -29,8 +29,8 @@ added, edited, renamed, or deleted.**
   outputs, sandboxing.
 - `.gitignore` — excludes node_modules, dist, coverage, logs, .env.
 - `.husky/pre-commit` — pre-commit gate: lint, typecheck, tests with coverage,
-  type coverage, then build + dogfood (`veto .reviewer/ --staged`).
-- `.reviewer/architect.yaml` — the dogfood reviewer config for this repo:
+  type coverage, then build + dogfood (`veto .veto/ --staged`).
+- `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, FILES.md currency, effects at
   the edges, no duplication, behavior-focused tests) over `src`/`test`.
 
@@ -59,7 +59,7 @@ added, edited, renamed, or deleted.**
   — digits followed by whitespace — then all whitespace; idempotent) and
   `fingerprintFinding`: ModelFinding →
   `hash(reviewer + rule + file + normalizedMessage)` truncated to 12 hex chars.
-- `src/core/suppression.ts` — `parseSuppressions` (`.reviewer/ignore` text →
+- `src/core/suppression.ts` — `parseSuppressions` (`.veto/ignore` text →
   `SuppressionList`, `#` comments allowed, `Result` with `ConfigError`) and
   `filterSuppressed` (drop suppressed findings, report their fingerprints).
 - `src/core/baseline-diff.ts` — `diffBaseline`: previous baseline × current
@@ -73,7 +73,7 @@ added, edited, renamed, or deleted.**
   `isAbsolutePath`, and `resolveWithin` (resolve against a root).
 - `src/core/tool-policy.ts` — `evaluateToolCall` (restriction ring 3):
   deny-by-default tool allowlist (Read/Grep/Glob), repo-root containment,
-  `.reviewer/runs/` denial, optional strict scope globs.
+  settings-provided runs-dir denial, optional strict scope globs.
 - `src/core/reducer.ts` — `RunState`, `initialState`, and the curried event
   reducer `reduce(state)(event)` folding the `ReviewEvent` union into
   per-reviewer outcomes, key/attempt/hashes, and the blocking flag.
@@ -231,7 +231,7 @@ added, edited, renamed, or deleted.**
 - `src/domain/run-record.ts` — `RunRecord` schema: diffHash, configHash,
   attempt, sessionId, ranAt, durationMs.
 - `src/domain/suppression-list.ts` — `SuppressionList` schema: the decoded
-  fingerprints from `.reviewer/ignore`.
+  fingerprints from `.veto/ignore`.
 - `src/domain/latest-projection.ts` — `ReviewerStatus`, `ReviewerOutcome`
   (with optional per-reviewer `stats` and fail-open `failure` cause), and
   the `LatestProjection` schema (the `latest.json` shape).
@@ -265,7 +265,8 @@ added, edited, renamed, or deleted.**
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
   drive letters, absolute detection, root resolution.
 - `test/core/tool-policy.test.ts` — allowlist, repo-root containment,
-  `.reviewer/runs/` denial, strict scope (acceptance criterion 8 surface).
+  runs-dir denial (relative and absolute, outside-root ignored), strict scope
+  (acceptance criterion 8 surface).
 - `test/core/reducer.test.ts` — every event variant plus fast-check properties
   (no mutation of input state; AgentEvent noise never changes the outcome).
 - `test/core/exit-code.test.ts` — blocking detection per severity and exit-code

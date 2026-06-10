@@ -5,8 +5,11 @@ import { dirname, join } from 'node:path'
 import { Effect, Option } from 'effect'
 import { NodeContext } from '@effect/platform-node'
 import type { CliArgs } from '../../src/cli/options.js'
-import { prepare, type Prepared } from '../../src/cli/prepare.js'
-import { defaultTimeoutMs } from '../../src/engine/inputs.js'
+import { prepare } from '../../src/cli/prepare.js'
+import {
+  defaultTimeoutMs,
+  type RunReviewInput
+} from '../../src/engine/inputs.js'
 import type { ConfigError } from '../../src/domain/errors.js'
 
 const configYaml = [
@@ -36,7 +39,7 @@ const args = (overrides: Partial<CliArgs>): CliArgs => ({
   ...overrides
 })
 
-const run = (cliArgs: CliArgs): Promise<Prepared> =>
+const run = (cliArgs: CliArgs): Promise<RunReviewInput> =>
   Effect.runPromise(
     prepare({ args: cliArgs, repoRoot: '/repo' }).pipe(
       Effect.provide(NodeContext.layer)
@@ -54,23 +57,23 @@ describe('prepare', () => {
   it('builds the run input from a positional config directory', async () => {
     const dir = configDir()
     const prepared = await run(args({ dir: Option.some(dir) }))
-    expect(prepared.input.reviewers.map((r) => r.config.name)).toEqual([
+    expect(prepared.reviewers.map((r) => r.config.name)).toEqual([
       'architect'
     ])
-    expect(prepared.input.reviewers[0]?.source).toBe(configYaml)
-    expect(prepared.input.settings.repoRoot).toBe('/repo')
-    expect(prepared.input.settings.timeoutMs).toBe(defaultTimeoutMs)
-    expect(prepared.input.settings.strictScope).toBe(false)
-    expect(prepared.input.settings.suppressions.fingerprints).toEqual([])
-    expect(prepared.runsDir).toBe(join(dir, 'runs'))
+    expect(prepared.reviewers[0]?.source).toBe(configYaml)
+    expect(prepared.settings.repoRoot).toBe('/repo')
+    expect(prepared.settings.timeoutMs).toBe(defaultTimeoutMs)
+    expect(prepared.settings.strictScope).toBe(false)
+    expect(prepared.settings.suppressions.fingerprints).toEqual([])
+    expect(prepared.settings.runsDir).toBe(join(dir, 'runs'))
   })
 
   it('anchors the runs dir next to a --config file', async () => {
     const dir = configDir()
     const file = join(dir, 'architect.yaml')
     const prepared = await run(args({ config: [file] }))
-    expect(dirname(prepared.runsDir)).toBe(dir)
-    expect(prepared.runsDir).toBe(join(dir, 'runs'))
+    expect(dirname(prepared.settings.runsDir)).toBe(dir)
+    expect(prepared.settings.runsDir).toBe(join(dir, 'runs'))
   })
 
   it('merges the positional directory with repeated --config files', async () => {
@@ -82,8 +85,8 @@ describe('prepare', () => {
         config: [join(other, 'architect.yaml')]
       })
     )
-    expect(prepared.input.reviewers).toHaveLength(2)
-    expect(prepared.runsDir).toBe(join(dir, 'runs'))
+    expect(prepared.reviewers).toHaveLength(2)
+    expect(prepared.settings.runsDir).toBe(join(dir, 'runs'))
   })
 
   it('maps --timeout seconds onto the run settings in milliseconds', async () => {
@@ -91,7 +94,7 @@ describe('prepare', () => {
     const prepared = await run(
       args({ dir: Option.some(dir), timeout: Option.some(240) })
     )
-    expect(prepared.input.settings.timeoutMs).toBe(240_000)
+    expect(prepared.settings.timeoutMs).toBe(240_000)
   })
 
   it('propagates the format and no-cache flags into the input', async () => {
@@ -99,8 +102,8 @@ describe('prepare', () => {
     const prepared = await run(
       args({ dir: Option.some(dir), format: 'json', noCache: true })
     )
-    expect(prepared.input.format).toBe('json')
-    expect(prepared.input.settings.noCache).toBe(true)
+    expect(prepared.format).toBe('json')
+    expect(prepared.settings.noCache).toBe(true)
   })
 
   it('parses the ignore file next to the configs into suppressions', async () => {
@@ -110,7 +113,7 @@ describe('prepare', () => {
       '# comments allowed\na94f3c21e0b7  # architect false positive\n'
     )
     const prepared = await run(args({ dir: Option.some(dir) }))
-    expect(prepared.input.settings.suppressions.fingerprints).toEqual([
+    expect(prepared.settings.suppressions.fingerprints).toEqual([
       'a94f3c21e0b7'
     ])
   })

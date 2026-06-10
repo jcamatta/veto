@@ -59,6 +59,7 @@ const policyFor =
   (call: ToolCallRequest): PolicyDecision =>
     evaluateToolCall({
       repoRoot: run.ctx.settings.repoRoot,
+      runsDir: run.ctx.settings.runsDir,
       tool: call.tool,
       path: call.path,
       scope: run.ctx.settings.strictScope ? run.reviewer.config.paths : null

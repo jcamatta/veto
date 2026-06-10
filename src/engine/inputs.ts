@@ -12,6 +12,7 @@ type ReviewerSource = {
 type RunSettings = {
   readonly hash: HashFn
   readonly repoRoot: string
+  readonly runsDir: string
   readonly suppressions: SuppressionList
   readonly noCache: boolean
   readonly strictScope: boolean

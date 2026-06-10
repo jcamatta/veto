@@ -48,7 +48,7 @@ describe('scopeFiles', () => {
     const dotted: ReviewerConfig = { ...config, paths: ['**/*.yaml'], ignore: [] }
     const result = scopeFiles({
       config: dotted,
-      files: ['.reviewer/architect.yaml']
+      files: ['.veto/architect.yaml']
     })
     expect(result.matched).toBe(true)
   })
