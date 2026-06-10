@@ -332,7 +332,8 @@ describe('runReview — fail-open (acceptance 6)', () => {
     expect(code).toBe(0)
     expect(emitted[0]?.projection.reviewers[0]).toMatchObject({
       name: 'architect',
-      status: 'unavailable'
+      status: 'unavailable',
+      failure: 'AgentUnavailable: credit exhausted'
     })
     const events = memory.events.get('abc123/architect/attempt-1') ?? []
     const failed = events.find((e) => e._tag === 'ReviewerFailed')
@@ -390,8 +391,9 @@ describe('runReview — tool-call policy (acceptance 8)', () => {
       { _tag: 'CallTool', tool: 'Grep', path: 'src/a.ts' },
       sayResult([])
     ])
-    const { code, memory } = await execute({ agent: scripted.layer })
+    const { code, memory, emitted } = await execute({ agent: scripted.layer })
     expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]?.stats?.denials).toBe(2)
     const events = memory.events.get('abc123/architect/attempt-1') ?? []
     const denials = events.filter((e) => e._tag === 'ToolCallDenied')
     expect(denials).toHaveLength(2)

@@ -4,6 +4,7 @@ import {
   LatestProjection,
   ReviewerOutcome
 } from '../domain/latest-projection.js'
+import { formatStats } from './stats-format.js'
 
 const location = (finding: Finding): string =>
   finding.line === null ? finding.file : `${finding.file}:${String(finding.line)}`
@@ -21,6 +22,12 @@ const renderFinding = (finding: Finding): string =>
 const renderReviewer = (outcome: ReviewerOutcome): string =>
   [
     `## ${outcome.name} — ${outcome.status}`,
+    ...(outcome.failure === undefined
+      ? []
+      : [`Failed open: ${outcome.failure}`]),
+    ...(outcome.stats === undefined
+      ? []
+      : [`_${formatStats(outcome.stats)}_`]),
     ...(outcome.findings.length === 0
       ? ['No findings.']
       : outcome.findings.map(renderFinding)),

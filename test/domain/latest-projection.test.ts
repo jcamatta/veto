@@ -47,6 +47,28 @@ describe('LatestProjection', () => {
     expect(Either.isLeft(decode({ ...valid, reviewers }))).toBe(true)
   })
 
+  it('accepts optional stats and failure on a reviewer outcome', () => {
+    const reviewers = [
+      {
+        name: 'architect',
+        status: 'unavailable',
+        findings: [],
+        resolved: [],
+        failure: 'TimeoutException: timed out',
+        stats: {
+          turns: 2,
+          inputTokens: 100,
+          outputTokens: 50,
+          costUsd: null,
+          durationMs: 900,
+          toolCalls: 1,
+          denials: 0
+        }
+      }
+    ]
+    expect(Either.isRight(decode({ ...valid, reviewers }))).toBe(true)
+  })
+
   it('rejects a missing blocking flag', () => {
     const rest = Object.fromEntries(
       Object.entries(valid).filter(([key]) => key !== 'blocking')

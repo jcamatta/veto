@@ -13,7 +13,8 @@ import {
   ReviewerFailed,
   ReviewerSkipped,
   RunCompleted,
-  RunStarted
+  RunStarted,
+  ToolCallDenied
 } from '../../src/domain/review-event.js'
 
 const fp = Schema.decodeSync(Fingerprint)
@@ -84,13 +85,14 @@ describe('reduce', () => {
     expect(state.reviewers[0]?.resolved).toEqual(['aaaaaaaaaaaa'])
   })
 
-  it('ReviewerFailed marks unavailable and clears findings', () => {
+  it('ReviewerFailed marks unavailable, clears findings, and records the cause', () => {
     const state = fold([
       FindingsDecoded.make({ reviewer: 'a', findings: [finding('aaaaaaaaaaaa')] }),
       ReviewerFailed.make({ reviewer: 'a', error: 'offline', failOpen: true })
     ])
     expect(state.reviewers[0]?.status).toBe('unavailable')
     expect(state.reviewers[0]?.findings).toEqual([])
+    expect(state.reviewers[0]?.failure).toBe('offline')
   })
 
   it('RunCompleted sets blocking and completed', () => {
@@ -99,10 +101,50 @@ describe('reduce', () => {
     expect(state.completed).toBe(true)
   })
 
-  it('AgentEvent and ToolCallDenied leave state unchanged', () => {
-    const before = fold([started])
-    const after = reduce(before)(AgentEvent.make({ reviewer: 'a', raw: { x: 1 } }))
-    expect(after).toEqual(before)
+  it('AgentEvent accumulates usage and tool calls into stats only', () => {
+    const state = fold([
+      AgentEvent.make({
+        reviewer: 'a',
+        raw: {
+          type: 'assistant',
+          message: { content: [{ type: 'tool_use' }, { type: 'text' }] }
+        }
+      }),
+      AgentEvent.make({
+        reviewer: 'a',
+        raw: {
+          type: 'result',
+          result: '{}',
+          usage: { input_tokens: 100, output_tokens: 20 },
+          total_cost_usd: 0.01,
+          num_turns: 3,
+          duration_ms: 1500
+        }
+      })
+    ])
+    expect(state.reviewers[0]?.stats).toEqual({
+      turns: 3,
+      inputTokens: 100,
+      outputTokens: 20,
+      costUsd: 0.01,
+      durationMs: 1500,
+      toolCalls: 1,
+      denials: 0
+    })
+    expect(state.reviewers[0]?.status).toBe('completed')
+    expect(state.reviewers[0]?.findings).toEqual([])
+  })
+
+  it('ToolCallDenied increments the denial count', () => {
+    const state = fold([
+      ToolCallDenied.make({
+        reviewer: 'a',
+        tool: 'Read',
+        path: '../x',
+        reason: 'outside repo root'
+      })
+    ])
+    expect(state.reviewers[0]?.stats?.denials).toBe(1)
   })
 
   it('never mutates the input state (property)', () => {
@@ -132,12 +174,24 @@ describe('reduce', () => {
     )
   })
 
-  it('interleaved AgentEvents never change the outcome (property)', () => {
+  it('interleaved AgentEvents never change the verdict (property)', () => {
     const meaningful: readonly ReviewEvent[] = [
       started,
       FindingsDecoded.make({ reviewer: 'a', findings: [finding('aaaaaaaaaaaa')] }),
       RunCompleted.make({ blocking: true })
     ]
+    const verdict = (events: readonly ReviewEvent[]) => {
+      const state = fold(events)
+      return {
+        blocking: state.blocking,
+        reviewers: state.reviewers.map((r) => ({
+          name: r.name,
+          status: r.status,
+          findings: r.findings,
+          resolved: r.resolved
+        }))
+      }
+    }
     fc.assert(
       fc.property(fc.array(fc.nat({ max: 3 })), (positions) => {
         const noise = AgentEvent.make({ reviewer: 'a', raw: null })
@@ -145,7 +199,7 @@ describe('reduce', () => {
           (acc, pos) => [...acc.slice(0, pos), noise, ...acc.slice(pos)],
           meaningful
         )
-        expect(fold(interleaved)).toEqual(fold(meaningful))
+        expect(verdict(interleaved)).toEqual(verdict(meaningful))
       })
     )
   })

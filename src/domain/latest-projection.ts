@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 import { Finding, Fingerprint } from './finding.js'
+import { ReviewerStats } from './reviewer-stats.js'
 
 const ReviewerStatus = Schema.Literal(
   'completed',
@@ -14,7 +15,9 @@ const ReviewerOutcome = Schema.Struct({
   name: Schema.NonEmptyTrimmedString,
   status: ReviewerStatus,
   findings: Schema.Array(Finding),
-  resolved: Schema.Array(Fingerprint)
+  resolved: Schema.Array(Fingerprint),
+  stats: Schema.optional(ReviewerStats),
+  failure: Schema.optional(Schema.NonEmptyString)
 })
 
 type ReviewerOutcome = typeof ReviewerOutcome.Type

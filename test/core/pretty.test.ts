@@ -34,9 +34,25 @@ const projection: LatestProjection = {
           fingerprint: fp('beefbeefbeef')
         }
       ],
-      resolved: [fp('cccccccccccc')]
+      resolved: [fp('cccccccccccc')],
+      stats: {
+        turns: 4,
+        inputTokens: 12450,
+        outputTokens: 2100,
+        costUsd: 0.084,
+        durationMs: 16140,
+        toolCalls: 5,
+        denials: 2
+      }
     },
-    { name: 'frontend', status: 'skipped', findings: [], resolved: [] }
+    { name: 'frontend', status: 'skipped', findings: [], resolved: [] },
+    {
+      name: 'security',
+      status: 'unavailable',
+      findings: [],
+      resolved: [],
+      failure: "TimeoutException: Operation timed out after '1m 30s'"
+    }
   ],
   blocking: true
 }
@@ -73,5 +89,19 @@ describe('renderPretty', () => {
   it('marks non-blocking runs', () => {
     const text = renderPretty({ ...projection, blocking: false })
     expect(text).toContain('Not blocking.')
+  })
+
+  it('renders the stats line when stats are present', () => {
+    const text = renderPretty(projection)
+    expect(text).toContain(
+      '  4 turns · 12450 in / 2100 out tokens · 5 tool calls (2 denied) · 16.1s · $0.0840'
+    )
+  })
+
+  it('renders the fail-open cause for unavailable reviewers', () => {
+    const text = renderPretty(projection)
+    expect(text).toContain(
+      "  failed open: TimeoutException: Operation timed out after '1m 30s'"
+    )
   })
 })

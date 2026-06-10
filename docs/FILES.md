@@ -89,8 +89,16 @@ added, edited, renamed, or deleted.**
   trailing strict-JSON findings object in the agent's result text
   (`Result<ModelFindings, FindingsParseError>`; tolerates prose before the
   JSON and a trailing markdown fence).
+- `src/core/agent-stats.ts` — `emptyStats`, `accumulateMessage`, and
+  `bumpDenials`: fold raw agent messages into `ReviewerStats` (usage, cost,
+  turns, duration from result messages; tool_use counts from assistant
+  messages; denial counter), tolerant of unknown shapes.
+- `src/core/stats-format.ts` — `formatStats`: `ReviewerStats` → the one-line
+  human-readable stats summary shared by the pretty and markdown renderers
+  (null segments dropped).
 - `src/core/markdown.ts` — `renderMarkdown`: `LatestProjection` → the
-  human-readable `latest.md` document.
+  human-readable `latest.md` document, incl. per-reviewer stats line and
+  fail-open cause.
 - `src/core/pretty.ts` — `renderPretty`: `LatestProjection` → the terminal
   summary text (findings per reviewer, blocking verdict, pointer to
   `latest.md`) used by the pretty report format.
@@ -213,8 +221,12 @@ added, edited, renamed, or deleted.**
   attempt, sessionId, ranAt, durationMs.
 - `src/domain/suppression-list.ts` — `SuppressionList` schema: the decoded
   fingerprints from `.reviewer/ignore`.
-- `src/domain/latest-projection.ts` — `ReviewerStatus`, `ReviewerOutcome`, and
+- `src/domain/latest-projection.ts` — `ReviewerStatus`, `ReviewerOutcome`
+  (with optional per-reviewer `stats` and fail-open `failure` cause), and
   the `LatestProjection` schema (the `latest.json` shape).
+- `src/domain/reviewer-stats.ts` — `ReviewerStats` schema: per-reviewer run
+  statistics (turns, input/output tokens, cost, duration — nullable when the
+  backend does not report them — plus tool-call and denial counters).
 - `src/domain/review-event.ts` — the ten tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,
@@ -254,8 +266,13 @@ added, edited, renamed, or deleted.**
 - `test/core/findings-parse.test.ts` — findings JSON parsing: pure JSON,
   trailing JSON after prose, markdown fences, and the error cases (null
   text, no JSON, schema mismatch).
+- `test/core/agent-stats.test.ts` — stats accumulation from result/assistant
+  messages, summing across retry sessions, denial bumps, and tolerance of
+  malformed raws.
+- `test/core/stats-format.test.ts` — stats-line rendering: full, partial,
+  and all-null shapes; denial suffix.
 - `test/core/markdown.test.ts` — markdown rendering of header, findings,
-  resolved fingerprints, and empty reviewers.
+  resolved fingerprints, empty reviewers, stats line, and fail-open cause.
 - `test/core/pretty.test.ts` — terminal summary rendering: header, findings
   with locations/suggestions, resolved fingerprints, blocking verdict, report
   pointer.
@@ -333,7 +350,10 @@ added, edited, renamed, or deleted.**
 - `test/domain/run-record.test.ts` — decode tests for `RunRecord`.
 - `test/domain/suppression-list.test.ts` — decode tests for `SuppressionList`.
 - `test/domain/latest-projection.test.ts` — decode tests for
-  `LatestProjection` and all reviewer statuses.
+  `LatestProjection`, all reviewer statuses, and the optional stats/failure
+  fields.
+- `test/domain/reviewer-stats.test.ts` — decode tests for `ReviewerStats`
+  (nullable usage, counter bounds).
 - `test/domain/review-event.test.ts` — decode tests for every `ReviewEvent`
   variant of the union.
 - `test/domain/errors.test.ts` — tests for the tagged error constructors and

@@ -34,6 +34,16 @@ type RetrySession = {
   readonly error: FindingsParseError
 }
 
+type SessionOutcome = {
+  readonly model: ModelFindings
+  readonly events: readonly ReviewEvent[]
+}
+
+type ParsedSession = {
+  readonly result: Result<ModelFindings, FindingsParseError>
+  readonly events: readonly ReviewEvent[]
+}
+
 const toEvent =
   (reviewer: string) =>
   (item: AgentStreamItem): ReviewEvent =>
@@ -78,20 +88,19 @@ const rawMessages = (events: Chunk.Chunk<ReviewEvent>): readonly unknown[] =>
 
 const sessionFindings = (
   input: SessionInput
-): Effect.Effect<
-  Result<ModelFindings, FindingsParseError>,
-  AgentUnavailable,
-  Agent | RunStore
-> =>
+): Effect.Effect<ParsedSession, AgentUnavailable, Agent | RunStore> =>
   collectEvents(input).pipe(
-    Effect.map((events) => parseFindings(resultText(rawMessages(events))))
+    Effect.map((chunk) => ({
+      result: parseFindings(resultText(rawMessages(chunk))),
+      events: Chunk.toReadonlyArray(chunk)
+    }))
   )
 
 const retrySession = ({
   input,
   error
 }: RetrySession): Effect.Effect<
-  ModelFindings,
+  SessionOutcome,
   AgentUnavailable | FindingsParseError,
   Agent | RunStore
 > =>
@@ -100,23 +109,30 @@ const retrySession = ({
     prompt: appendParseRetry({ prompt: input.prompt, message: error.message })
   }).pipe(
     Effect.flatMap((second) =>
-      isOk(second) ? Effect.succeed(second.value) : Effect.fail(second.error)
+      isOk(second.result)
+        ? Effect.succeed({ model: second.result.value, events: second.events })
+        : Effect.fail(second.result.error)
     )
   )
 
 const runSession = (
   input: SessionInput
 ): Effect.Effect<
-  ModelFindings,
+  SessionOutcome,
   AgentUnavailable | FindingsParseError,
   Agent | RunStore
 > =>
   sessionFindings(input).pipe(
     Effect.flatMap((first) =>
-      isOk(first)
-        ? Effect.succeed(first.value)
-        : retrySession({ input, error: first.error })
+      isOk(first.result)
+        ? Effect.succeed({ model: first.result.value, events: first.events })
+        : retrySession({ input, error: first.result.error }).pipe(
+            Effect.map((second) => ({
+              model: second.model,
+              events: [...first.events, ...second.events]
+            }))
+          )
     )
   )
 
-export { type SessionInput, runSession }
+export { type SessionInput, type SessionOutcome, runSession }

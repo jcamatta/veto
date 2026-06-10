@@ -128,8 +128,12 @@ const liveSession = ({ run, startedAt }: LiveSession) =>
     maxTurns
   }).pipe(
     Effect.timeout(Duration.millis(run.ctx.settings.timeoutMs)),
-    Effect.flatMap((model) =>
-      conclude({ run, findings: fingerprinted({ run, model }), startedAt })
+    Effect.flatMap(({ model, events }) =>
+      conclude({
+        run,
+        findings: fingerprinted({ run, model }),
+        startedAt
+      }).pipe(Effect.map((concluded) => [...events, ...concluded]))
     )
   )
 

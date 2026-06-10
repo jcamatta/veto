@@ -34,9 +34,25 @@ const projection: LatestProjection = {
           fingerprint: fp('beefbeefbeef')
         }
       ],
-      resolved: [fp('cccccccccccc')]
+      resolved: [fp('cccccccccccc')],
+      stats: {
+        turns: 4,
+        inputTokens: 12450,
+        outputTokens: 2100,
+        costUsd: 0.084,
+        durationMs: 16140,
+        toolCalls: 5,
+        denials: 2
+      }
     },
-    { name: 'frontend', status: 'skipped', findings: [], resolved: [] }
+    { name: 'frontend', status: 'skipped', findings: [], resolved: [] },
+    {
+      name: 'security',
+      status: 'unavailable',
+      findings: [],
+      resolved: [],
+      failure: 'AgentUnavailable: credit exhausted'
+    }
   ],
   blocking: true
 }
@@ -76,5 +92,13 @@ describe('renderMarkdown', () => {
   it('says blocking: no for a clean run', () => {
     const md = renderMarkdown({ ...projection, blocking: false, reviewers: [] })
     expect(md).toContain('blocking: no')
+  })
+
+  it('renders the stats line and fail-open cause', () => {
+    const md = renderMarkdown(projection)
+    expect(md).toContain(
+      '_4 turns · 12450 in / 2100 out tokens · 5 tool calls (2 denied) · 16.1s · $0.0840_'
+    )
+    expect(md).toContain('Failed open: AgentUnavailable: credit exhausted')
   })
 })
