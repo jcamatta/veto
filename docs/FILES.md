@@ -61,6 +61,9 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
+- `docs/plans/branch-gate.md` — the conventional-branch commit gate: every
+  change on its own `<type>/<description>` branch, direct commits to `main`
+  rejected by `.husky/check-branch.sh`.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
