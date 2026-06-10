@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Schema } from 'effect'
-import { buildPrompt } from '../../src/core/prompt.js'
+import { appendParseRetry, buildPrompt } from '../../src/core/prompt.js'
 import { Fingerprint } from '../../src/domain/finding.js'
 import { ReviewerConfig } from '../../src/domain/reviewer-config.js'
 
@@ -62,5 +62,15 @@ describe('buildPrompt', () => {
     expect(prompt).toContain('a94f3c21e0b7')
     expect(prompt).toContain('state whether it is now resolved')
     expect(prompt).toContain('No flip-flopping')
+  })
+})
+
+describe('appendParseRetry', () => {
+  it('appends the validation error after the original prompt', () => {
+    const prompt = buildPrompt({ config, diff, baseline: null })
+    const retried = appendParseRetry({ prompt, message: 'Expected "error"' })
+    expect(retried.startsWith(prompt)).toBe(true)
+    expect(retried).toContain('failed validation: Expected "error"')
+    expect(retried).toContain('Emit only a single valid JSON object')
   })
 })

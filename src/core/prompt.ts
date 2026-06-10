@@ -48,6 +48,19 @@ const baselineSection = (baseline: Baseline | null): string | null =>
         layer2Instructions
       ].join('\n')
 
+type RetryInput = {
+  readonly prompt: string
+  readonly message: string
+}
+
+const appendParseRetry = ({ prompt, message }: RetryInput): string =>
+  [
+    prompt,
+    `Your previous output failed validation: ${message}`,
+    'Emit only a single valid JSON object matching the required shape,',
+    'with nothing before or after it.'
+  ].join('\n\n')
+
 const buildPrompt = ({ config, diff, baseline }: PromptInput): string =>
   [
     config.systemPrompt,
@@ -60,4 +73,4 @@ const buildPrompt = ({ config, diff, baseline }: PromptInput): string =>
     .filter((section): section is string => section !== null)
     .join('\n\n')
 
-export { type PromptInput, buildPrompt }
+export { type PromptInput, type RetryInput, buildPrompt, appendParseRetry }

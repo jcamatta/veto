@@ -56,7 +56,8 @@ added, edited, renamed, or deleted.**
   findings → resolved fingerprints / persisting / fresh, matched by fingerprint.
 - `src/core/prompt.ts` — `buildPrompt`: systemPrompt + rules + staged files +
   diff + optional baseline with Layer-2 instructions + strict-JSON output
-  instruction.
+  instruction; `appendParseRetry` appends the schema error for the one
+  findings-decode retry.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
   separator unification, dot-segment collapsing, drive-letter lowering,
   `isAbsolutePath`, and `resolveWithin` (resolve against a root).
@@ -68,8 +69,16 @@ added, edited, renamed, or deleted.**
   per-reviewer outcomes, key/attempt/hashes, and the blocking flag.
 - `src/core/exit-code.ts` — `isBlocking` (any error-severity finding) and the
   severity → exit code mapping (`0`/`1`; `2` is CLI misuse, mapped elsewhere).
-- `src/core/projection.ts` — `buildProjection`: `RunState` + timestamp →
-  `LatestProjection` (the `latest.json` shape), blocking derived from findings.
+- `src/core/projection.ts` — `buildProjection`: `RunState` + timestamp + git
+  head/branch → `LatestProjection` (the `latest.json` shape), blocking derived
+  from findings.
+- `src/core/agent-output.ts` — `resultText`: pull the final result text out of
+  the raw agent message stream (last message shaped
+  `{ type: 'result', result: string }`).
+- `src/core/findings-parse.ts` — `parseFindings`: locate and decode the
+  trailing strict-JSON findings object in the agent's result text
+  (`Result<ModelFindings, FindingsParseError>`; tolerates prose before the
+  JSON and a trailing markdown fence).
 - `src/core/markdown.ts` — `renderMarkdown`: `LatestProjection` → the
   human-readable `latest.md` document.
 - `src/core/pretty.ts` — `renderPretty`: `LatestProjection` → the terminal
@@ -123,6 +132,33 @@ added, edited, renamed, or deleted.**
   returns config + raw source text (the Layer-1 config-hash input); all
   failures are `ConfigError`.
 
+## src/engine/ — pipeline orchestration (the engine, SPEC §10 & §12)
+
+- `src/engine/inputs.ts` — the engine's input contract: `ReviewerSource`
+  (config + raw YAML source), `RunSettings` (hash, repo root, suppressions,
+  no-cache, strict scope, timeout), `ReviewContext` (settings + staged diff +
+  head/branch), `RunReviewInput`, and the 90 s `defaultTimeoutMs`.
+- `src/engine/reviewer-run.ts` — the per-reviewer run value (`ReviewerRun`:
+  context, key, attempt, baseline, hashes), `appendEvents` (the event-log
+  side channel into `RunStore`), and the `RunStarted` event constructor.
+- `src/engine/agent-session.ts` — one fresh agent session: stream items
+  mapped to `AgentEvent`/`ToolCallDenied` and tapped to the store, result
+  text decoded into `ModelFindings` with exactly one retry (schema error
+  appended to the prompt).
+- `src/engine/reviewer-conclude.ts` — the successful-session tail:
+  fingerprint findings, filter suppressions, diff against the baseline,
+  emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
+  the new baseline and run record.
+- `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: glob-scope skip
+  → Layer-1 replay check (record hash comparison) → live agent session with
+  injected tool policy, per-reviewer timeout, and typed fail-open
+  (`AgentUnavailable`/`FindingsParseError`/`TimeoutException` →
+  `ReviewerFailed`).
+- `src/engine/run-review.ts` — the whole-run command: reject `runtime` mode,
+  gather git context, run reviewers with concurrency 4, fold events through
+  the reducer, write projections, prune to 10 heads, report, and derive the
+  exit code.
+
 ## src/domain/ — Schema types at every trust boundary (SPEC §10)
 
 - `src/domain/reviewer-config.ts` — `ReviewerConfig` schema for the per-reviewer
@@ -166,7 +202,7 @@ added, edited, renamed, or deleted.**
 - `test/core/baseline-diff.test.ts` — resolved/persisting/fresh partitioning,
   no-baseline and clean-run cases.
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
-  Layer-2 instructions, strict-JSON tail.
+  Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
   drive letters, absolute detection, root resolution.
 - `test/core/tool-policy.test.ts` — allowlist, repo-root containment,
@@ -175,8 +211,13 @@ added, edited, renamed, or deleted.**
   (no mutation of input state; AgentEvent noise never changes the outcome).
 - `test/core/exit-code.test.ts` — blocking detection per severity and exit-code
   mapping.
-- `test/core/projection.test.ts` — projection from folded state, derived
-  blocking, empty-repo fallbacks.
+- `test/core/projection.test.ts` — projection from folded state plus git
+  head/branch, derived blocking.
+- `test/core/agent-output.test.ts` — result-text extraction: last result
+  message wins, malformed shapes ignored.
+- `test/core/findings-parse.test.ts` — findings JSON parsing: pure JSON,
+  trailing JSON after prose, markdown fences, and the error cases (null
+  text, no JSON, schema mismatch).
 - `test/core/markdown.test.ts` — markdown rendering of header, findings,
   resolved fingerprints, and empty reviewers.
 - `test/core/pretty.test.ts` — terminal summary rendering: header, findings
@@ -228,6 +269,13 @@ added, edited, renamed, or deleted.**
 - `test/adapters/config-loader.test.ts` — file and directory discovery with
   raw-source round-trip, non-yaml exclusion, and `ConfigError`s for missing
   paths, empty dirs, malformed YAML, and schema rejections.
+- `test/engine/run-review.test.ts` — integration tests for the whole engine
+  on the fixture adapters (zero credits): completed/blocking runs, scope
+  skip, Layer-1 replay and its busts (`--no-cache`, config edit), Layer-2
+  baseline injection and resolution, suppression filtering, fail-open
+  (unavailable, double parse failure, timeout) with retry recovery,
+  tool-call denials incl. strict scope, and runtime-mode rejection
+  (acceptance criteria 2–9).
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.

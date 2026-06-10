@@ -3,7 +3,6 @@ import { DateTime, Schema } from 'effect'
 import { buildProjection } from '../../src/core/projection.js'
 import { initialState, reduce } from '../../src/core/reducer.js'
 import { Fingerprint } from '../../src/domain/finding.js'
-import { emptyRepoSentinel } from '../../src/domain/run-key.js'
 import {
   FindingsDecoded,
   ReviewEvent,
@@ -18,7 +17,7 @@ const fold = (events: readonly ReviewEvent[]) =>
   events.reduce((state, event) => reduce(state)(event), initialState)
 
 describe('buildProjection', () => {
-  it('projects head, branch, attempt, and reviewers from state', () => {
+  it('projects head and branch from git truth and the rest from state', () => {
     const state = fold([
       RunStarted.make({
         key: { head: 'a1b2c3', branch: 'main', reviewer: 'architect' },
@@ -40,7 +39,12 @@ describe('buildProjection', () => {
         ]
       })
     ])
-    const projection = buildProjection({ state, ranAt })
+    const projection = buildProjection({
+      state,
+      ranAt,
+      head: 'a1b2c3',
+      branch: 'main'
+    })
     expect(projection.head).toBe('a1b2c3')
     expect(projection.branch).toBe('main')
     expect(projection.attempt).toBe(3)
@@ -49,13 +53,24 @@ describe('buildProjection', () => {
   })
 
   it('derives blocking from findings, not from RunCompleted', () => {
-    const projection = buildProjection({ state: initialState, ranAt })
+    const projection = buildProjection({
+      state: initialState,
+      ranAt,
+      head: 'a1b2c3',
+      branch: 'main'
+    })
     expect(projection.blocking).toBe(false)
   })
 
-  it('falls back to the empty-repo sentinel without a RunStarted', () => {
-    const projection = buildProjection({ state: initialState, ranAt })
-    expect(projection.head).toBe(emptyRepoSentinel)
-    expect(projection.branch).toBe('unknown')
+  it('carries head and branch even when no reviewer emitted RunStarted', () => {
+    const projection = buildProjection({
+      state: initialState,
+      ranAt,
+      head: 'feedbeef',
+      branch: 'feat/x'
+    })
+    expect(projection.head).toBe('feedbeef')
+    expect(projection.branch).toBe('feat/x')
+    expect(projection.attempt).toBe(1)
   })
 })

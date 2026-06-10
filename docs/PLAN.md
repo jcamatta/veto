@@ -76,7 +76,32 @@ Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
     `symbolic-ref`; detached HEAD falls back to `rev-parse --abbrev-ref`.
   - `fs-run-store` prunes HEAD dirs by mtime (newest N kept) and treats
     unreadable/corrupt baseline or record files as null (no baseline).
-- [ ] Phase 6 — pipeline orchestration.
+- [x] **Phase 6 — done, awaiting review/commit.** The engine in `src/engine/`
+  (`inputs`, `reviewer-run`, `agent-session`, `reviewer-conclude`,
+  `run-reviewer`, `run-review`) plus two new core calculations
+  (`agent-output`, `findings-parse`) and `appendParseRetry` in `prompt`;
+  gates green (227 tests, 99.7% line / 99.9% type coverage).
+  Implementation notes / deviations:
+  - `buildProjection` now takes git `head`/`branch` directly (git is the
+    truth) instead of falling back to the empty-repo sentinel from event
+    state; the empty-repo sentinel is already produced by the git adapter.
+  - The per-reviewer timeout is `RunSettings.timeoutMs` (engine exports
+    `defaultTimeoutMs = 90_000` for the Phase-7 CLI) so the timeout path is
+    testable without a test clock; `maxTurns` stays a fixed engine constant
+    (15).
+  - Layer-1 replay compares `record.diffHash`/`configHash` (equivalent to
+    the spec's combined replay key); a replay re-emits
+    `RunStarted`/`FindingsDecoded` from the baseline plus `ReplayServed`,
+    and re-applies the suppression filter so new suppressions take effect
+    on replayed findings too.
+  - Decode-retry is a second fresh agent session with the schema error
+    appended (`appendParseRetry`); both sessions' events land in the same
+    attempt's JSONL log.
+  - `RunCompleted` is folded into state but not persisted to a per-reviewer
+    event log (the log is keyed per reviewer; the outcome lives in the
+    projections).
+  - Fail-open writes no `record.json`/`baseline.json` (a failed run must
+    not feed the replay cache); only the `ReviewerFailed` event is logged.
 - [ ] Phase 7 — CLI.
 - [ ] Phase 8 — hardening, dogfood & acceptance.
 
