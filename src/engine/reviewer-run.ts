@@ -2,6 +2,7 @@ import { Effect } from 'effect'
 import type { Baseline } from '../domain/baseline.js'
 import { RunStarted, type ReviewEvent } from '../domain/review-event.js'
 import type { RunKey } from '../domain/run-key.js'
+import type { StagedDiff } from '../domain/staged-diff.js'
 import { RunStore } from '../ports/run-store.js'
 import type { ReviewContext, ReviewerSource } from './inputs.js'
 
@@ -11,6 +12,7 @@ type ReviewerRun = {
   readonly key: RunKey
   readonly attempt: number
   readonly baseline: Baseline | null
+  readonly diff: StagedDiff
   readonly diffHash: string
   readonly configHash: string
 }

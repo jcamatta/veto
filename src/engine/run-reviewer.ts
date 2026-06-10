@@ -1,4 +1,5 @@
 import { DateTime, Duration, Effect } from 'effect'
+import { scopeDiff } from '../core/diff-scope.js'
 import { findingsSchemaFor } from '../core/findings-schema.js'
 import { scopeFiles } from '../core/glob-scope.js'
 import { configHash, diffHash } from '../core/hashing.js'
@@ -42,6 +43,7 @@ type Dispatch = {
   readonly record: RunRecord | null
   readonly baseline: Baseline | null
 }
+
 
 type LiveSession = {
   readonly run: ReviewerRun
@@ -123,7 +125,7 @@ const liveSession = ({ run, startedAt }: LiveSession) =>
     attempt: run.attempt,
     prompt: buildPrompt({
       config: run.reviewer.config,
-      diff: run.ctx.diff,
+      diff: run.diff,
       baseline: run.baseline
     }),
     policy: policyFor(run),
@@ -186,9 +188,10 @@ const dispatch = (
   Agent | RunStore | ReviewClock
 > => {
   const settings = input.ctx.settings
+  const diff = scopeDiff({ config: input.reviewer.config, diff: input.ctx.diff })
   const dHash = diffHash({
     hash: settings.hash,
-    diffText: input.ctx.diff.diffText
+    diffText: diff.diffText
   })
   const cHash = configHash({
     hash: settings.hash,
@@ -206,6 +209,7 @@ const dispatch = (
     key: input.key,
     attempt: hit !== null ? hit.attempt : (input.record?.attempt ?? 0) + 1,
     baseline: input.baseline,
+    diff,
     diffHash: dHash,
     configHash: cHash
   }

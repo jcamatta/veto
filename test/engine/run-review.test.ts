@@ -420,6 +420,58 @@ describe('runReview — fail-open (acceptance 6)', () => {
   })
 })
 
+describe('runReview — scoped diff', () => {
+  const hunk = (file: string): string =>
+    [
+      `diff --git a/${file} b/${file}`,
+      `--- a/${file}`,
+      `+++ b/${file}`,
+      '@@ -1 +1,2 @@',
+      '+const x = 1'
+    ].join('\n')
+
+  const multiRepo: FixtureRepo = {
+    diff: {
+      diffText: [hunk('src/a.ts'), hunk('docs/guide.md')].join('\n'),
+      files: ['src/a.ts', 'docs/guide.md']
+    },
+    head: 'abc123',
+    branch: 'main',
+    stagedContents: {}
+  }
+
+  it('prompts the reviewer with only its in-scope hunks and files', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    await execute({ agent: scripted.layer, git: fixtureGit(multiRepo) })
+    const calls = await Effect.runPromise(scripted.calls)
+    expect(calls[0]?.prompt).toContain('b/src/a.ts')
+    expect(calls[0]?.prompt).not.toContain('docs/guide.md')
+  })
+
+  it('replays from cache when only out-of-scope files change', async () => {
+    const store = makeInMemoryRunStore()
+    const scripted = scriptedAgent([sayResult([])])
+    await execute({ agent: scripted.layer, git: fixtureGit(multiRepo), store })
+    const edited: FixtureRepo = {
+      ...multiRepo,
+      diff: {
+        diffText: [hunk('src/a.ts'), `${hunk('docs/guide.md')}\n+more`].join(
+          '\n'
+        ),
+        files: ['src/a.ts', 'docs/guide.md']
+      }
+    }
+    const second = await execute({
+      agent: scripted.layer,
+      git: fixtureGit(edited),
+      store
+    })
+    const calls = await Effect.runPromise(scripted.calls)
+    expect(calls).toHaveLength(1)
+    expect(second.emitted[0]?.projection.reviewers[0]?.status).toBe('replayed')
+  })
+})
+
 describe('runReview — structured outputs', () => {
   it('passes the findings JSON schema to the agent', async () => {
     const scripted = scriptedAgent([sayResult([])])

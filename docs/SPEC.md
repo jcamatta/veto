@@ -187,15 +187,18 @@ The full current staged diff is passed **every** run — the model must always s
 
 ### Layer 1 — exact-replay cache (pure optimization)
 
-`replayKey = hash(staged diff text + config file content on disk)`. Identical key ⇒
-replay stored findings, zero model calls, instant exit. Config content is hashed
-separately from the diff because config edits don't appear in the staged diff unless
-staged. `--no-cache` bypasses.
+`replayKey = hash(reviewer-scoped diff text + config file content on disk)`. Identical
+key ⇒ replay stored findings, zero model calls, instant exit. The diff is hashed
+**after** scoping to the reviewer's `paths`/`ignore` globs, so editing files outside a
+reviewer's scope never invalidates its cache. Config content is hashed separately from
+the diff because config edits don't appear in the staged diff unless staged.
+`--no-cache` bypasses.
 
 ### Layer 2 — findings baseline (behavior change on re-run)
 
-When the diff changed under the same key, the prompt receives, in addition to the full
-current staged diff, the previous findings JSON plus this instruction (verbatim intent):
+When the diff changed under the same key, the prompt receives, in addition to the
+reviewer-scoped staged diff, the previous findings JSON plus this instruction
+(verbatim intent):
 
 1. For each previous finding, state whether it is now **resolved**.
 2. Report **genuinely new** problems introduced by the modifications.
@@ -253,8 +256,9 @@ directory.
 Two jobs, never given to the same party:
 
 **Job 1 — collecting the staged diff: deterministic code.** The wrapper runs
-`git diff --staged -U15` and `git diff --staged --name-only`, injects the diff into the
-prompt. The agent never "discovers" changes via git — nondeterministic, slow, and would
+`git diff --staged -U15` and `git diff --staged --name-only`, scopes the diff to the
+reviewer's `paths`/`ignore` globs (per-file segments; a reviewer is only shown the
+hunks it is meant to judge), and injects it into the prompt. The agent never "discovers" changes via git — nondeterministic, slow, and would
 require exec capability. Partial-staging nuance: disk content can differ from staged
 content (`git add -p`); when full staged file content is needed, use `git show :0:path`.
 

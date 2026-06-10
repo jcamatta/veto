@@ -62,6 +62,9 @@ added, edited, renamed, or deleted.**
 - `docs/plans/veto-init.md` — `veto init` scaffolding command: stack
   detection, cost-tuned starter YAML, idempotent husky wiring, CLAUDE.md
   snippet.
+- `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
+  shown only its in-scope hunks, and the replay cache is keyed on the scoped
+  diff (trust, cost, cache stability).
 - `docs/FILES.md` — this document.
 
 ## src/core/ — pure calculations (functional core, no `node:*`/git/SDK imports)
@@ -71,6 +74,11 @@ added, edited, renamed, or deleted.**
   code where Effect is overkill.
 - `src/core/glob-scope.ts` — `scopeFiles`: config `paths`/`ignore` globs ×
   staged file list → in-scope files and the matched/skip decision (picomatch).
+- `src/core/diff-scope.ts` — `scopeDiff`: split the unified diff into
+  per-file segments (`diff --git` headers) and keep only the reviewer's
+  in-scope files, so each reviewer is shown — and its replay cache is keyed
+  on — only the hunks it judges; preamble and unparseable text are kept
+  (fail-safe).
 - `src/core/hashing.ts` — the injected `HashFn` type plus `diffHash`,
   `configHash`, and the Layer-1 `replayKey` (hash of both hashes); the actual
   sha1 lives in an adapter so the core stays free of `node:crypto`.
@@ -204,9 +212,11 @@ added, edited, renamed, or deleted.**
   emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
   the new baseline and run record.
 - `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: glob-scope skip
-  → Layer-1 replay check (record hash comparison) → live agent session with
-  injected tool policy and per-reviewer knobs (model/effort/maxTurns from
-  the config, config timeout overriding the run timeout), and typed fail-open
+  → diff scoped to the reviewer's globs (prompt and Layer-1 diff hash both
+  use the scoped diff) → replay check (record hash comparison) → live agent
+  session with injected tool policy and per-reviewer knobs (model/effort/
+  maxTurns from the config, config timeout overriding the run timeout), and
+  typed fail-open
   (`AgentUnavailable`/`FindingsParseError`/`TimeoutException` →
   `ReviewerFailed`).
 - `src/engine/run-review.ts` — the whole-run command: reject `runtime` mode,
@@ -279,6 +289,9 @@ added, edited, renamed, or deleted.**
 - `test/core/result.test.ts` — unit tests for the Result type.
 - `test/core/fake-hash.ts` — deterministic FNV-1a-based hex `HashFn` stub
   shared by core tests; keeps the suite free of `node:crypto`.
+- `test/core/diff-scope.test.ts` — diff segmentation and scoping: glob
+  filtering, scoped file list, full-segment preservation, preamble and
+  unparseable fail-safes, identity on fully in-scope diffs.
 - `test/core/glob-scope.test.ts` — scope matching, ignore globs, dotfiles, and
   the no-match skip decision.
 - `test/core/hashing.test.ts` — diff/config hash delegation and replay-key
