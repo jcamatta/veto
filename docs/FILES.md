@@ -80,6 +80,9 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
+- `docs/plans/rule-stats.md` — `veto stats`: per-rule health aggregated from
+  the retained run-history event logs (fired / suppressed / severity
+  histogram / last seen), the evidence base for tuning or parking rules.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
