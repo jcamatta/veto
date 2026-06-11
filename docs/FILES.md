@@ -129,7 +129,8 @@ added, edited, renamed, or deleted.**
   `appendHookLine`: idempotent append of the hook line to a pre-commit file's
   text (no change when already present).
 - `src/core/init-template.ts` — `renderStarterConfig`: detected stack → the
-  commented starter `.veto/architect.yaml` text (cost-tuned defaults,
+  commented starter `.veto/architect.yaml` text (yaml-language-server
+  modeline pointing at `./schema.json`, cost-tuned defaults,
   bounded-reading prompt, stack-shaped placeholder rules); plus the
   `agentSnippet` CLAUDE.md feedback line.
 - `src/core/config-json-schema.ts` — `configJsonSchema`: the JSON Schema for
@@ -287,7 +288,8 @@ added, edited, renamed, or deleted.**
   tests spend zero credits.
 - `src/cli/init-command.ts` — `runInit`: the `veto init` shell — resolve the
   repo root, refuse when `.veto/` already has configs, detect the stack from
-  `package.json`, write the starter config, idempotently wire
+  `package.json`, write the starter config and `.veto/schema.json` (the
+  generated JSON Schema the starter's modeline points at), idempotently wire
   `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
 - `src/cli/check-command.ts` — `checkArgs` and `runCheck`: the `veto check`
   subcommand body — resolve targets like a run does (positional / `--config`
@@ -372,9 +374,9 @@ added, edited, renamed, or deleted.**
 - `test/core/init-hook.test.ts` — idempotent hook append: appends with and
   without a trailing newline, empty file, no-op when already wired.
 - `test/core/init-template.test.ts` — every stack's starter renders YAML that
-  decodes as `ReviewerConfig`, carries the cost-tuned defaults, shapes
-  paths/rules to the stack, and instructs bounded reading; the agent snippet
-  points at `latest.json`.
+  decodes as `ReviewerConfig`, opens with the yaml-language-server modeline,
+  carries the cost-tuned defaults, shapes paths/rules to the stack, and
+  instructs bounded reading; the agent snippet points at `latest.json`.
 - `test/core/config-json-schema.test.ts` — the generated JSON Schema has the
   required reviewer fields, mode/effort enums, optional knobs, rejects
   unknown keys, and never degrades to an unconstrained object.
@@ -458,8 +460,9 @@ added, edited, renamed, or deleted.**
   tool-call denials incl. strict scope, and runtime-mode rejection
   (acceptance criteria 2–9).
 - `test/cli/init-command.test.ts` — end-to-end `veto init` in real temp git
-  repos: starter scaffolding, electron-shaped detection, hook append and
-  idempotent no-op, refusal on existing configs, exit 2 outside a repo.
+  repos: starter scaffolding, `schema.json` written next to it,
+  electron-shaped detection, hook append and idempotent no-op, refusal on
+  existing configs, exit 2 outside a repo.
 - `test/cli/check-command.test.ts` — `veto check` in real temp git repos:
   per-file ok lines and exit 0 on valid dirs, error line and exit 2 on a
   malformed config, `.veto/` default, repeated `--config`, exit 2 on
