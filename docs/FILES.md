@@ -125,6 +125,10 @@ added, edited, renamed, or deleted.**
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
   rule citations instead of trusting the model to echo them.
+- `src/core/rule-stats.ts` — `foldRuleStats`: fold `StoredEvent` history
+  (oldest first) into per-rule `RuleStats` aggregates — fires and severity
+  histogram from `FindingsDecoded`, suppressions attributed via the
+  fingerprint → rule map, last-seen head; sorted by fired desc then rule.
 - `src/core/init-detect.ts` — `detectStack`: `package.json` text → the repo's
   stack (`electron` > `next` > `react` > `node`), falling back to `node` on a
   missing or malformed manifest.
@@ -372,6 +376,10 @@ added, edited, renamed, or deleted.**
   schema preserved.
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
   Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
+- `test/core/rule-stats.test.ts` — fold tests: empty history, per-rule
+  fire/severity counts and last head, suppression attribution (incl.
+  never-fired fingerprints), plain-string rule keys, sort order, unrelated
+  events ignored.
 - `test/core/init-detect.test.ts` — stack-detection table: electron/next/react
   precedence, plain-library and missing/malformed-manifest fallbacks to node.
 - `test/core/init-hook.test.ts` — idempotent hook append: appends with and
