@@ -45,10 +45,12 @@ const defaultFiles = (
 ): Effect.Effect<readonly string[], ConfigError, CheckEnvironment> =>
   Path.Path.pipe(
     Effect.flatMap((path) => discoverConfigs(path.join(repoRoot, '.veto'))),
-    Effect.mapError(() =>
-      configError(
-        'no reviewer configs found: no .veto/ in the repo root — run veto init, pass a config directory, or use --config'
-      )
+    Effect.mapError((error) =>
+      error.message.startsWith('config path not found')
+        ? configError(
+            'no reviewer configs found: no .veto/ in the repo root — run veto init, pass a config directory, or use --config'
+          )
+        : error
     )
   )
 

@@ -132,6 +132,12 @@ describe('veto check', () => {
     expect(result.codes).toEqual([2])
   })
 
+  it('exits 2 when .veto/ exists but holds no YAML configs', async () => {
+    const dir = repoWithConfigs({})
+    const result = await runCheckCli({ cwd: dir, argv: [] })
+    expect(result.codes).toEqual([2])
+  })
+
   it('exits 2 when no target is given and the repo has no .veto/', async () => {
     const dir = gitRepo()
     const result = await runCheckCli({ cwd: dir, argv: [] })
