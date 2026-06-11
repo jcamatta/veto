@@ -41,7 +41,7 @@ const renderPretty = (projection: LatestProjection): string =>
     ...projection.reviewers.map(renderReviewer),
     '',
     projection.blocking
-      ? 'BLOCKING: error findings present.'
+      ? 'BLOCKING: findings at or above the fail-on threshold.'
       : 'Not blocking.',
     'Full report: .veto/runs/latest.md'
   ].join('\n')
