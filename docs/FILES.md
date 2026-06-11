@@ -51,7 +51,8 @@ added, edited, renamed, or deleted.**
 - `.husky/check-commit-size.sh` — enforces the commit size budget on the
   staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
   required past 30 source lines (locks, generated output, docs, and .husky
-  itself excluded).
+  itself excluded; merge commits skipped — their changes were already
+  budgeted on their own branches).
 - `.claude/skills/finish-plan/SKILL.md` — the plan-closing skill: verify the
   plan is done and the checks are green, draft the PR description from the
   plan, remove the plan doc, push the branch, and open the GitHub PR for the
