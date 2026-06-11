@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { exitCode, isBlocking, type ExitCode } from '../core/exit-code.js'
+import { blocksAt, exitCode, type ExitCode } from '../core/exit-code.js'
 import { renderMarkdown } from '../core/markdown.js'
 import { buildProjection } from '../core/projection.js'
 import { initialState, reduce, type RunState } from '../core/reducer.js'
@@ -8,6 +8,7 @@ import {
   type ConfigError,
   type GitError
 } from '../domain/errors.js'
+import type { FailOn } from '../domain/fail-on.js'
 import { RunCompleted, type ReviewEvent } from '../domain/review-event.js'
 import { Agent } from '../ports/agent.js'
 import { ReviewClock } from '../ports/clock.js'
@@ -67,10 +68,13 @@ const foldEvents = (input: {
     : foldEvents({ state: reduce(input.state)(head), events: rest })
 }
 
-const foldRun = (events: readonly ReviewEvent[]): RunState => {
-  const folded = foldEvents({ state: initialState, events })
+const foldRun = (input: {
+  readonly events: readonly ReviewEvent[]
+  readonly failOn: FailOn
+}): RunState => {
+  const folded = foldEvents({ state: initialState, events: input.events })
   return reduce(folded)(
-    RunCompleted.make({ blocking: isBlocking(folded.reviewers) })
+    RunCompleted.make({ blocking: blocksAt(input.failOn)(folded.reviewers) })
   )
 }
 
@@ -85,7 +89,8 @@ const publish = (
             state: input.state,
             ranAt,
             head: input.ctx.head,
-            branch: input.ctx.branch
+            branch: input.ctx.branch,
+            failOn: input.ctx.settings.failOn
           })
           return store
             .writeProjections({
@@ -116,7 +121,9 @@ const runReview = (
       Effect.all(input.reviewers.map(runReviewer(ctx)), {
         concurrency: reviewerConcurrency
       }).pipe(
-        Effect.map((lists) => foldRun(lists.flat())),
+        Effect.map((lists) =>
+          foldRun({ events: lists.flat(), failOn: input.settings.failOn })
+        ),
         Effect.flatMap((state) =>
           publish({ ctx, state, format: input.format }).pipe(
             Effect.as(exitCode(state.blocking))

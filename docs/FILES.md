@@ -143,11 +143,13 @@ added, edited, renamed, or deleted.**
 - `src/core/reducer.ts` — `RunState`, `initialState`, and the curried event
   reducer `reduce(state)(event)` folding the `ReviewEvent` union into
   per-reviewer outcomes, key/attempt/hashes, and the blocking flag.
-- `src/core/exit-code.ts` — `isBlocking` (any error-severity finding) and the
-  severity → exit code mapping (`0`/`1`; `2` is CLI misuse, mapped elsewhere).
+- `src/core/exit-code.ts` — `blocksAt(threshold)` (any finding at or above
+  the `FailOn` threshold; `never` blocks nothing), `isBlocking`
+  (= `blocksAt('error')`), and the blocking → exit code mapping (`0`/`1`;
+  `2` is CLI misuse, mapped elsewhere).
 - `src/core/projection.ts` — `buildProjection`: `RunState` + timestamp + git
-  head/branch → `LatestProjection` (the `latest.json` shape), blocking derived
-  from findings.
+  head/branch + `failOn` threshold → `LatestProjection` (the `latest.json`
+  shape), blocking derived from findings via the threshold.
 - `src/core/agent-output.ts` — pull the final result out of the raw agent
   message stream: `resultText` (last `{ type: 'result', result }`),
   `structuredOutput` (the last result message's validated
@@ -230,7 +232,8 @@ added, edited, renamed, or deleted.**
 
 - `src/engine/inputs.ts` — the engine's input contract: `ReviewerSource`
   (config + raw YAML source), `RunSettings` (hash, repo root, suppressions,
-  no-cache, strict scope, timeout), `ReviewContext` (settings + staged diff +
+  no-cache, strict scope, timeout, fail-on threshold), `ReviewContext`
+  (settings + staged diff +
   head/branch), `RunReviewInput`, and the 90 s `defaultTimeoutMs`.
 - `src/engine/reviewer-run.ts` — the per-reviewer run value (`ReviewerRun`:
   context, key, attempt, baseline, hashes), `appendEvents` (the event-log
