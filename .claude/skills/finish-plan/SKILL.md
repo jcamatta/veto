@@ -108,8 +108,12 @@ git commit -m "docs: remove plan <name>, complete"
 
 ```sh
 git push -u origin HEAD
-gh pr create --base main --title "<conventional-commit-style title>" --body "<the body from step 3>"
+gh pr create --base main --title "<conventional-commit-style title>" --body-file <tmp-body-file>
 ```
+
+Write the body to a temporary file and pass `--body-file` — inline
+`--body` strings get mangled by shell quoting (PowerShell especially).
+Delete the temp file after the PR is created.
 
 If the evidence included screenshots, they were committed under
 `docs/pr-evidence/` and ship with the branch; link them from the body with
