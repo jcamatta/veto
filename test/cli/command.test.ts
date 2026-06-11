@@ -145,7 +145,8 @@ describe('makeCli', () => {
     })
     expect(result.codes).toEqual([0])
     const latest = join(dir, '.veto', 'runs', 'latest.json')
-    expect(readFileSync(latest, 'utf8')).toContain('"blocking": false')
+    const projection: unknown = JSON.parse(readFileSync(latest, 'utf8'))
+    expect(projection).toMatchObject({ blocking: false })
   })
 
   it('exits 2 on an invalid --fail-on value', async () => {

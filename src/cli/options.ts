@@ -1,6 +1,6 @@
 import { Args, Options } from '@effect/cli'
 import type { Option } from 'effect'
-import type { FailOn } from '../domain/fail-on.js'
+import { FailOn } from '../domain/fail-on.js'
 import type { ReportFormat } from '../ports/reporter.js'
 
 type CliArgs = {
@@ -47,12 +47,7 @@ const timeout = Options.integer('timeout').pipe(
   Options.optional
 )
 
-const failOn = Options.choice('fail-on', [
-  'error',
-  'warning',
-  'info',
-  'never'
-]).pipe(
+const failOn = Options.choice('fail-on', FailOn.literals).pipe(
   Options.withDescription(
     'lowest finding severity that blocks the commit; never always exits 0 (default error)'
   ),
