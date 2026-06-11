@@ -26,6 +26,9 @@ const renderReviewer = (outcome: ReviewerOutcome): string =>
     ...(outcome.failure === undefined
       ? []
       : [`  failed open: ${outcome.failure}`]),
+    ...(outcome.skipReason === undefined
+      ? []
+      : [`  skipped: ${outcome.skipReason}`]),
     ...(outcome.stats === undefined ? [] : [`  ${formatStats(outcome.stats)}`]),
     ...outcome.findings.map(renderFinding),
     ...(outcome.resolved.length === 0

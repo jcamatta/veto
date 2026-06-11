@@ -41,6 +41,7 @@ const baseSettings: RunSettings = {
   noCache: false,
   strictScope: false,
   timeoutMs: 5000,
+  maxCostUsd: null,
   failOn: 'error'
 }
 
@@ -268,6 +269,29 @@ describe('runReview — scope skip (acceptance 2)', () => {
     expect(await Effect.runPromise(scripted.calls)).toHaveLength(0)
     const events = memory.events.get('abc123/docs/attempt-1') ?? []
     expect(events.map((e) => e._tag)).toEqual(['ReviewerSkipped'])
+  })
+
+  it('skips a reviewer whose scoped diff exceeds the diff budget', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    const small: ReviewerSource = {
+      config: { ...architect.config, maxDiffLines: 1 },
+      source: 'architect-config-v1'
+    }
+    const { code, emitted, memory } = await execute({
+      agent: scripted.layer,
+      reviewers: [small]
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]).toMatchObject({
+      name: 'architect',
+      status: 'skipped',
+      skipReason: 'diff-too-large'
+    })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(0)
+    const events = memory.events.get('abc123/architect/attempt-1') ?? []
+    expect(events).toMatchObject([
+      { _tag: 'ReviewerSkipped', reason: 'diff-too-large' }
+    ])
   })
 
   it('skips a reviewer whose rules are all disabled or out of scope', async () => {
@@ -630,6 +654,26 @@ describe('runReview — structured outputs', () => {
     expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
     expect(emitted[0]?.projection.reviewers[0]?.failure).toContain(
       'structured output'
+    )
+  })
+
+  it('fails open without a second session when the cost ceiling is hit', async () => {
+    const scripted = scriptedAgent([
+      {
+        _tag: 'Say',
+        raw: {
+          type: 'result',
+          subtype: 'error_max_budget_usd',
+          is_error: true
+        }
+      }
+    ])
+    const { code, emitted } = await execute({ agent: scripted.layer })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(1)
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
+    expect(emitted[0]?.projection.reviewers[0]?.failure).toContain(
+      'cost ceiling'
     )
   })
 

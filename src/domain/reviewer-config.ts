@@ -65,7 +65,10 @@ const ReviewerConfig = Schema.Struct({
   model: Schema.optional(Schema.NonEmptyTrimmedString),
   effort: Schema.optional(ReviewerEffort),
   maxTurns: Schema.optional(Schema.Positive.pipe(Schema.int())),
-  timeoutMs: Schema.optional(Schema.Positive.pipe(Schema.int()))
+  timeoutMs: Schema.optional(Schema.Positive.pipe(Schema.int())),
+  maxDiffLines: Schema.optional(Schema.Positive.pipe(Schema.int())),
+  maxDiffFiles: Schema.optional(Schema.Positive.pipe(Schema.int())),
+  maxCostUsd: Schema.optional(Schema.Positive)
 })
 
 type ReviewerConfig = typeof ReviewerConfig.Type

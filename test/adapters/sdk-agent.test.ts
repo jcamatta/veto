@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PermissionResult } from '@anthropic-ai/claude-agent-sdk'
-import { Chunk, Effect, Stream } from 'effect'
+import { Chunk, Deferred, Effect, Fiber, Stream } from 'effect'
 import {
   sdkAgent,
   type QueryFn,
@@ -27,7 +27,7 @@ const runInput = (policy: AgentRunInput['policy']): AgentRunInput => ({
   prompt: 'review this diff',
   system: 'You are a reviewer.',
   policy,
-  limits: { maxTurns: 15 },
+  limits: { maxTurns: 15, maxCostUsd: null },
   outputSchema: { type: 'object' },
   model: null,
   effort: null
@@ -101,6 +101,54 @@ describe('sdkAgent', () => {
         }
       }
     })
+    expect(JSON.stringify(items[0])).not.toContain('maxBudgetUsd')
+  })
+
+  it('forwards a cost ceiling to the sdk as maxBudgetUsd', async () => {
+    const queryFn: QueryFn = (params) => ({
+      [Symbol.asyncIterator]: async function* () {
+        await Promise.resolve()
+        yield params
+      }
+    })
+    const capped: AgentRunInput = {
+      ...runInput(allowReads),
+      limits: { maxTurns: 15, maxCostUsd: 0.5 }
+    }
+    const items = await collect(queryFn, capped)
+    expect(items[0]).toMatchObject({
+      raw: { options: { maxBudgetUsd: 0.5 } }
+    })
+  })
+
+  it('aborts the sdk query when the run is interrupted', async () => {
+    const gate = Effect.runSync(Deferred.make<AbortController>())
+    const queryFn: QueryFn = (params) => {
+      const controller = params.options.abortController
+      if (controller !== undefined) {
+        Deferred.unsafeDone(gate, Effect.succeed(controller))
+      }
+      return {
+        [Symbol.asyncIterator]: async function* () {
+          yield { type: 'system' }
+          yield await new Promise<never>(() => {
+            return
+          })
+        }
+      }
+    }
+    const aborted = await Effect.runPromise(
+      Effect.gen(function* () {
+        const agent = yield* Agent
+        const fiber = yield* Effect.fork(
+          Stream.runDrain(agent.run(runInput(allowReads)))
+        )
+        const controller = yield* Deferred.await(gate)
+        yield* Fiber.interrupt(fiber)
+        return controller.signal.aborted
+      }).pipe(Effect.provide(sdkAgent({ repoRoot: '/repo', queryFn })))
+    )
+    expect(aborted).toBe(true)
   })
 
   it('sends the system text on the claude_code preset, cacheable', async () => {

@@ -83,11 +83,16 @@ const buildOptions = (input: {
   readonly context: RunContext
   readonly run: AgentRunInput
   readonly canUseTool: CanUseTool
+  readonly abortController: AbortController
 }): Options => ({
   cwd: input.context.repoRoot,
   tools: [...staticTools],
   allowedTools: [...staticTools],
+  abortController: input.abortController,
   maxTurns: input.run.limits.maxTurns,
+  ...(input.run.limits.maxCostUsd === null
+    ? {}
+    : { maxBudgetUsd: input.run.limits.maxCostUsd }),
   settingSources: [],
   canUseTool: input.canUseTool,
   systemPrompt: {
@@ -113,13 +118,14 @@ const openStream = (input: {
   readonly run: AgentRunInput
 }): Effect.Effect<Stream.Stream<AgentStreamItem, AgentUnavailable>> =>
   Effect.map(Queue.unbounded<AgentStreamItem>(), (denials) => {
+    const abortController = new AbortController()
     const canUseTool = makeCanUseTool({
       policy: input.run.policy,
       offerDenial: (denial) => {
         Queue.unsafeOffer(denials, denial)
       }
     })
-    const options = buildOptions({ ...input, canUseTool })
+    const options = buildOptions({ ...input, canUseTool, abortController })
     const open = Effect.try({
       try: () => input.context.queryFn({ prompt: input.run.prompt, options }),
       catch: toUnavailable
@@ -135,7 +141,12 @@ const openStream = (input: {
           Effect.map((pending) => [...pending, agentMessage(raw)])
         )
       ),
-      Stream.concat(Stream.fromIterableEffect(Queue.takeAll(denials)))
+      Stream.concat(Stream.fromIterableEffect(Queue.takeAll(denials))),
+      Stream.ensuring(
+        Effect.sync(() => {
+          abortController.abort()
+        })
+      )
     )
   })
 

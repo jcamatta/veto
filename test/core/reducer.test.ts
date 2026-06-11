@@ -54,9 +54,22 @@ describe('reduce', () => {
       ReplayServed.make({ reviewer: 'b' })
     ])
     expect(state.reviewers).toEqual([
-      { name: 'a', status: 'skipped', findings: [], resolved: [] },
+      {
+        name: 'a',
+        status: 'skipped',
+        skipReason: 'no-matching-paths',
+        findings: [],
+        resolved: []
+      },
       { name: 'b', status: 'replayed', findings: [], resolved: [] }
     ])
+  })
+
+  it('ReviewerSkipped records the diff-too-large reason', () => {
+    const state = fold([
+      ReviewerSkipped.make({ reviewer: 'a', reason: 'diff-too-large' })
+    ])
+    expect(state.reviewers[0]?.skipReason).toBe('diff-too-large')
   })
 
   it('FindingsDecoded stores findings and keeps replayed status', () => {

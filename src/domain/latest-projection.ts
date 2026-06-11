@@ -17,7 +17,8 @@ const ReviewerOutcome = Schema.Struct({
   findings: Schema.Array(Finding),
   resolved: Schema.Array(Fingerprint),
   stats: Schema.optional(ReviewerStats),
-  failure: Schema.optional(Schema.NonEmptyString)
+  failure: Schema.optional(Schema.NonEmptyString),
+  skipReason: Schema.optional(Schema.NonEmptyString)
 })
 
 type ReviewerOutcome = typeof ReviewerOutcome.Type

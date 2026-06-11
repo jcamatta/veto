@@ -73,7 +73,8 @@ const assembleInput = (input: {
     timeoutMs: Option.match(input.prepare.args.timeout, {
       onNone: () => defaultTimeoutMs,
       onSome: (seconds) => seconds * 1000
-    })
+    }),
+    maxCostUsd: Option.getOrNull(input.prepare.args.maxCostUsd)
   },
   format: input.prepare.args.format
 })

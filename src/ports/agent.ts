@@ -10,6 +10,7 @@ type ToolCallRequest = {
 
 type AgentLimits = {
   readonly maxTurns: number
+  readonly maxCostUsd: number | null
 }
 
 type JsonSchema = Record<string, unknown>

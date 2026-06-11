@@ -57,6 +57,10 @@ const setStatus =
   (status: ReviewerStatus): Update =>
   (o) => ({ ...o, status })
 
+const setSkipped =
+  (reason: string): Update =>
+  (o) => ({ ...o, status: 'skipped', skipReason: reason })
+
 const trackMessage =
   (raw: unknown): Update =>
   (o) => ({ ...o, stats: accumulateMessage(o.stats ?? emptyStats)(raw) })
@@ -100,7 +104,7 @@ const reduce =
         diffHash: e.diffHash,
         configHash: e.configHash
       })),
-      Match.tag('ReviewerSkipped', (e) => touch(e.reviewer)(setStatus('skipped'))),
+      Match.tag('ReviewerSkipped', (e) => touch(e.reviewer)(setSkipped(e.reason))),
       Match.tag('ReplayServed', (e) => touch(e.reviewer)(setStatus('replayed'))),
       Match.tag('AgentEvent', (e) => touch(e.reviewer)(trackMessage(e.raw))),
       Match.tag('ToolCallDenied', (e) => touch(e.reviewer)(trackDenial)),

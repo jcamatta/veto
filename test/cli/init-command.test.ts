@@ -13,7 +13,8 @@ import { Effect, Ref } from 'effect'
 import { NodeContext } from '@effect/platform-node'
 import { makeCli, type CliExitCode } from '../../src/cli/command.js'
 
-const hookLine = 'npx veto .veto/ --staged'
+const hookLine =
+  'git rev-parse -q --verify MERGE_HEAD >/dev/null || npx veto .veto/ --staged'
 
 const git = (cwd: string, args: readonly string[]): void => {
   execFileSync('git', [...args], { cwd, stdio: 'pipe' })

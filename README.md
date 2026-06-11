@@ -53,6 +53,7 @@ veto .veto/ --staged                          # staged diff (the default; flag d
 veto .veto/ --format=json                     # machine-readable output (default: pretty)
 veto .veto/ --no-cache                        # bypass the exact-replay cache
 veto .veto/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
+veto .veto/ --max-cost-usd=0.50               # abort a reviewer once its run cost crosses this (USD)
 veto .veto/ --fail-on=warning                 # block on warnings too (default error; never = report-only)
 veto check                                    # validate configs without running a review
 veto check .veto/ --config=extra.yaml         # same target rules as a run
@@ -92,8 +93,13 @@ never re-litigates them:
 ```bash
 # .husky/pre-commit
 npx eslint .
-npx veto .veto/ --staged
+git rev-parse -q --verify MERGE_HEAD >/dev/null || npx veto .veto/ --staged
 ```
+
+The `MERGE_HEAD` guard skips the review on merge commits: a merge's staged
+diff is everything the merged branch brings in — code already reviewed on
+its own branch — so re-reviewing it only burns credit. `veto init` writes
+this guarded line for you.
 
 ### Exit codes
 
@@ -120,6 +126,9 @@ model: claude-sonnet-4-6      # optional — opaque string the backend interpret
 effort: medium                # optional — low | medium | high | xhigh | max
 maxTurns: 15                  # optional — agentic turn ceiling
 timeoutMs: 240000             # optional — overrides the run timeout for this reviewer
+maxCostUsd: 0.50              # optional — abort once run cost crosses this (USD)
+maxDiffLines: 3000            # optional — skip the reviewer if the scoped diff is larger
+maxDiffFiles: 50              # optional — skip the reviewer if more files are in scope
 paths:                        # trigger globs — no staged match ⇒ reviewer skips
   - "src/**/*.ts"
 ignore:                       # never considered by this reviewer
@@ -168,6 +177,21 @@ is the recommended default — cheaper, faster, and far less likely to spend
 its whole timeout thinking. The `model` string is opaque to the engine: only
 the agent adapter interprets it, so alternative backends can define their
 own values.
+
+### Spend guardrails
+
+Reviews cost credit, so veto bounds spend three ways — all fail open (they
+abort the review, never block the commit by themselves):
+
+- **Diff-size skip** (`maxDiffLines` / `maxDiffFiles`): an oversized scoped
+  diff skips the reviewer *before any model call*, reported as a
+  `diff-too-large` skip. Large merges are the usual trigger; the
+  `MERGE_HEAD` hook guard already skips merges entirely.
+- **Cost ceiling** (`maxCostUsd`, or `--max-cost-usd` for a whole run): rides
+  the Agent SDK's native USD budget, so the query stops mid-flight when the
+  ceiling is crossed and the reviewer fails open with a clear reason.
+- **Cancellation**: Ctrl-C (SIGINT) aborts the in-flight SDK query, so a
+  runaway review can always be killed by hand.
 
 ## How it behaves on re-runs
 

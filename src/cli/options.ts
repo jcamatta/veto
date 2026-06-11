@@ -10,6 +10,7 @@ type CliArgs = {
   readonly format: ReportFormat
   readonly noCache: boolean
   readonly timeout: Option.Option<number>
+  readonly maxCostUsd: Option.Option<number>
   readonly failOn: FailOn
 }
 
@@ -47,6 +48,13 @@ const timeout = Options.integer('timeout').pipe(
   Options.optional
 )
 
+const maxCostUsd = Options.float('max-cost-usd').pipe(
+  Options.withDescription(
+    'abort a reviewer once its run cost crosses this many USD (reviewer configs can override)'
+  ),
+  Options.optional
+)
+
 const failOn = Options.choice('fail-on', FailOn.literals).pipe(
   Options.withDescription(
     'lowest finding severity that blocks the commit; never always exits 0 (default error)'
@@ -54,6 +62,15 @@ const failOn = Options.choice('fail-on', FailOn.literals).pipe(
   Options.withDefault('error' as FailOn)
 )
 
-const cliOptions = { dir, config, staged, format, noCache, timeout, failOn }
+const cliOptions = {
+  dir,
+  config,
+  staged,
+  format,
+  noCache,
+  timeout,
+  maxCostUsd,
+  failOn
+}
 
 export { type CliArgs, cliOptions }

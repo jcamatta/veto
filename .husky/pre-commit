@@ -6,4 +6,4 @@ npm run typecheck
 npm run coverage
 npm run type-coverage
 npm run build
-node dist/cli.js .veto/ --staged
+git rev-parse -q --verify MERGE_HEAD >/dev/null || node dist/cli.js .veto/ --staged

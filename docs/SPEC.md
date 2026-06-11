@@ -160,6 +160,9 @@ ignore:                       # never sent to / considered by this reviewer
   - "**/*.test.ts"
   - "**/generated/**"
   - "package-lock.json"
+maxDiffLines: 3000            # optional — skip (don't review) if the scoped diff is larger
+maxDiffFiles: 50              # optional — skip if more files than this are in scope
+maxCostUsd: 0.50              # optional — abort the run once cost crosses this (SDK budget)
 systemPrompt: |
   You are a software architect reviewing a staged diff before commit...
 rules:                        # natural-language guidance the model interprets
@@ -183,6 +186,12 @@ Design rules for configs:
   in eslint (e.g. `eslint-plugin-boundaries`). Linters run first in the hook; the
   reviewer never re-litigates them. (v2: feed eslint JSON output into the reviewer's
   context so it knows what was already flagged.)
+- The guardrail knobs (`maxDiffLines`, `maxDiffFiles`, `maxCostUsd`) bound spend.
+  A scoped diff over either size limit skips the reviewer **before any model
+  call** (a visible `diff-too-large` skip — merges are the typical trigger);
+  `maxCostUsd` rides the SDK's native budget so the query stops mid-flight when
+  exceeded, and the reviewer fails open. A run override exists for the cost
+  ceiling: `--max-cost-usd` (reviewer config wins when both are set).
 - Rules live per-repo. No shared/inheritable rule sets (non-goal for now).
 - Editing a config changes review output even when not staged ⇒ config content is part
   of the Layer-1 cache key (§5).
@@ -314,7 +323,10 @@ key (§5). Other backends are free to interpret or ignore the system text — th
 
 1. **Capability allowlist**: `allowedTools: ['Read', 'Grep', 'Glob']` for static mode.
 2. **Resource ceiling**: `maxTurns` (default 15) + engine-side timeout (default 90 s,
-   per reviewer) + abort signal.
+   per reviewer) + optional `maxCostUsd` (SDK budget; query stops when exceeded) +
+   optional `maxDiffLines`/`maxDiffFiles` pre-flight skip + abort signal. The abort
+   signal is wired to fiber interruption: SIGINT/Ctrl-C aborts the in-flight SDK
+   query so a runaway review can always be killed.
 3. **Per-call veto (the hard sandbox)**: the SDK's permission callback / `PreToolUse`
    hook runs a **pure policy function** over every tool call, deny-by-default:
    - reject any path that resolves outside the repo root,
@@ -382,7 +394,7 @@ and the event union:
 ```ts
 type ReviewEvent =
   | RunStarted        { key, attempt, diffHash, configHash }
-  | ReviewerSkipped   { reviewer, reason: "no-matching-paths" }
+  | ReviewerSkipped   { reviewer, reason: "no-matching-paths" | "no-active-rules" | "diff-too-large" }
   | ReplayServed      { reviewer }                     // Layer 1 hit
   | AgentEvent        { reviewer, raw }                // every SDK message, verbatim
   | ToolCallDenied    { reviewer, tool, path, reason } // policy vetoes

@@ -56,6 +56,29 @@ describe('ReviewerConfig', () => {
     expect(Either.isLeft(result)).toBe(true)
   })
 
+  it('decodes the optional diff budget knobs', () => {
+    const result = decode({ ...valid, maxDiffLines: 3000, maxDiffFiles: 50 })
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.maxDiffLines).toBe(3000)
+      expect(result.right.maxDiffFiles).toBe(50)
+    }
+  })
+
+  it('rejects a non-positive diff budget', () => {
+    expect(Either.isLeft(decode({ ...valid, maxDiffLines: 0 }))).toBe(true)
+    expect(Either.isLeft(decode({ ...valid, maxDiffFiles: -1 }))).toBe(true)
+  })
+
+  it('decodes a fractional cost ceiling and rejects a non-positive one', () => {
+    const ok = decode({ ...valid, maxCostUsd: 0.25 })
+    expect(Either.isRight(ok)).toBe(true)
+    if (Either.isRight(ok)) {
+      expect(ok.right.maxCostUsd).toBe(0.25)
+    }
+    expect(Either.isLeft(decode({ ...valid, maxCostUsd: 0 }))).toBe(true)
+  })
+
   it('decodes identified rules and mixed shapes', () => {
     const result = decode({
       ...valid,

@@ -48,7 +48,13 @@ const projection: LatestProjection = {
         denials: 2
       }
     },
-    { name: 'frontend', status: 'skipped', findings: [], resolved: [] },
+    {
+      name: 'frontend',
+      status: 'skipped',
+      skipReason: 'diff-too-large',
+      findings: [],
+      resolved: []
+    },
     {
       name: 'security',
       status: 'unavailable',
@@ -101,6 +107,11 @@ describe('renderPretty', () => {
     expect(text).toContain(
       '  claude-sonnet-4-6 · 4 turns · 12450 in / 2100 out tokens · 7000 cache write / 90000 cache read · 5 tool calls (2 denied) · 16.1s · $0.0840'
     )
+  })
+
+  it('renders the skip reason for skipped reviewers', () => {
+    const text = renderPretty(projection)
+    expect(text).toContain('  skipped: diff-too-large')
   })
 
   it('renders the fail-open cause for unavailable reviewers', () => {

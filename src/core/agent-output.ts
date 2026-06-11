@@ -40,12 +40,18 @@ const resultText = (raws: readonly unknown[]): string | null => {
 const structuredOutput = (raws: readonly unknown[]): unknown =>
   lastEnvelope(raws)?.structured_output
 
-const structuredRetriesExhausted = (raws: readonly unknown[]): boolean =>
-  lastEnvelope(raws)?.subtype === 'error_max_structured_output_retries'
+const terminalFailureMessage = (raws: readonly unknown[]): string | null => {
+  const subtype = lastEnvelope(raws)?.subtype
+  return subtype === 'error_max_budget_usd'
+    ? 'cost ceiling reached before the review finished (maxCostUsd)'
+    : subtype === 'error_max_structured_output_retries'
+      ? 'structured output failed validation after model retries'
+      : null
+}
 
 export {
   type ResultMessage,
   resultText,
   structuredOutput,
-  structuredRetriesExhausted
+  terminalFailureMessage
 }
