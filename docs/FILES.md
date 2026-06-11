@@ -53,9 +53,14 @@ added, edited, renamed, or deleted.**
   required past 30 source lines (locks, generated output, docs, and .husky
   itself excluded).
 - `.claude/skills/finish-plan/SKILL.md` — the plan-closing skill: verify the
-  plan is done and the checks are green, draft the PR description from the
-  plan, remove the plan doc, push the branch, and open the GitHub PR for the
+  plan is done and the checks are green, run `test-functionality` for proof,
+  draft the PR body (plan conformance, risk flags, business rules, evidence),
+  remove the plan doc, push the branch, and open the GitHub PR for the
   user's review.
+- `.claude/skills/test-functionality/SKILL.md` — the evidence skill: exercise
+  the branch's change for real (built CLI against a fixture repo, or
+  Playwright for a UI) and return a "Proof it works" report with real
+  transcripts and a PASS/FAIL verdict. Called by `finish-plan` before any PR.
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, effects at the edges, no
   duplication, behavior-focused tests) over `src`/`test`; documentation is
@@ -129,9 +134,14 @@ added, edited, renamed, or deleted.**
   `appendHookLine`: idempotent append of the hook line to a pre-commit file's
   text (no change when already present).
 - `src/core/init-template.ts` — `renderStarterConfig`: detected stack → the
-  commented starter `.veto/architect.yaml` text (cost-tuned defaults,
+  commented starter `.veto/architect.yaml` text (yaml-language-server
+  modeline pointing at `./schema.json`, cost-tuned defaults,
   bounded-reading prompt, stack-shaped placeholder rules); plus the
   `agentSnippet` CLAUDE.md feedback line.
+- `src/core/config-json-schema.ts` — `configJsonSchema` and
+  `configJsonSchemaText`: the JSON Schema for `ReviewerConfig` generated at
+  module load via `JSONSchema.make` (plus its stable JSON text), consumed
+  by `veto schema` and written to `.veto/schema.json` by `veto init`.
 - `src/core/yaml-file.ts` — `isYamlFile`: the shared `.yaml`/`.yml` filename
   predicate used by config discovery and `veto init`'s clobber check.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
@@ -226,7 +236,8 @@ added, edited, renamed, or deleted.**
 - `src/adapters/config-loader.ts` — YAML config discovery (file or directory
   of `*.yaml`/`*.yml`, sorted) → parse → `Schema.decodeUnknown(ReviewerConfig)`;
   returns config + raw source text (the Layer-1 config-hash input); all
-  failures are `ConfigError`.
+  failures are `ConfigError`; `discoverConfigs` exposes the discovery step
+  alone so `veto check` can report per-file results.
 
 ## src/engine/ — pipeline orchestration (the engine, SPEC §10 & §12)
 
@@ -287,11 +298,19 @@ added, edited, renamed, or deleted.**
   tests spend zero credits.
 - `src/cli/init-command.ts` — `runInit`: the `veto init` shell — resolve the
   repo root, refuse when `.veto/` already has configs, detect the stack from
-  `package.json`, write the starter config, idempotently wire
+  `package.json`, write the starter config and `.veto/schema.json` (the
+  generated JSON Schema the starter's modeline points at), idempotently wire
   `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
+- `src/cli/check-command.ts` — `checkArgs` and `runCheck`: the `veto check`
+  subcommand body — resolve targets like a run does (positional / `--config`
+  / `.veto/` default, via `discoverConfigs`, without touching `prepare`),
+  decode each YAML file via the config loader, print per-file ok/error,
+  return exit 0 when all decode and 2 otherwise.
+- `src/cli/schema-command.ts` — `printSchema`: the `veto schema` subcommand
+  body printing `configJsonSchemaText` to the terminal.
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
-  prepare → `runReview` → exit with the run's code) with the `init`
-  subcommand wired in, plus exit-code mapping
+  prepare → `runReview` → exit with the run's code) with the `init`,
+  `schema`, and `check` subcommands wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -367,9 +386,12 @@ added, edited, renamed, or deleted.**
 - `test/core/init-hook.test.ts` — idempotent hook append: appends with and
   without a trailing newline, empty file, no-op when already wired.
 - `test/core/init-template.test.ts` — every stack's starter renders YAML that
-  decodes as `ReviewerConfig`, carries the cost-tuned defaults, shapes
-  paths/rules to the stack, and instructs bounded reading; the agent snippet
-  points at `latest.json`.
+  decodes as `ReviewerConfig`, opens with the yaml-language-server modeline,
+  carries the cost-tuned defaults, shapes paths/rules to the stack, and
+  instructs bounded reading; the agent snippet points at `latest.json`.
+- `test/core/config-json-schema.test.ts` — the generated JSON Schema has the
+  required reviewer fields, mode/effort enums, optional knobs, rejects
+  unknown keys, and never degrades to an unconstrained object.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
   drive letters, absolute detection, root resolution.
 - `test/core/tool-policy.test.ts` — allowlist, repo-root containment,
@@ -450,8 +472,16 @@ added, edited, renamed, or deleted.**
   tool-call denials incl. strict scope, and runtime-mode rejection
   (acceptance criteria 2–9).
 - `test/cli/init-command.test.ts` — end-to-end `veto init` in real temp git
-  repos: starter scaffolding, electron-shaped detection, hook append and
-  idempotent no-op, refusal on existing configs, exit 2 outside a repo.
+  repos: starter scaffolding, `schema.json` written next to it,
+  electron-shaped detection, hook append and idempotent no-op, refusal on
+  existing configs, exit 2 outside a repo.
+- `test/cli/check-command.test.ts` — `veto check` in real temp git repos:
+  per-file ok lines and exit 0 on valid dirs, error line and exit 2 on a
+  malformed config, `.veto/` default, repeated `--config`, exit 2 on
+  missing targets and missing `.veto/`.
+- `test/cli/schema-command.test.ts` — `configJsonSchemaText` round-trips to
+  `configJsonSchema`; `veto schema` prints the schema to a fake terminal
+  and exits 0.
 - `test/cli/repo-root.test.ts` — toplevel resolution from the repo root and
   a subdirectory of real throwaway repos, `GitError` outside a repo.
 - `test/cli/prepare.test.ts` — run-input assembly from a positional dir vs
