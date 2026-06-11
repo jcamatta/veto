@@ -27,7 +27,7 @@ const runInput = (policy: AgentRunInput['policy']): AgentRunInput => ({
   prompt: 'review this diff',
   system: 'You are a reviewer.',
   policy,
-  limits: { maxTurns: 15 },
+  limits: { maxTurns: 15, maxCostUsd: null },
   outputSchema: { type: 'object' },
   model: null,
   effort: null
@@ -100,6 +100,24 @@ describe('sdkAgent', () => {
           outputFormat: { type: 'json_schema', schema: { type: 'object' } }
         }
       }
+    })
+    expect(JSON.stringify(items[0])).not.toContain('maxBudgetUsd')
+  })
+
+  it('forwards a cost ceiling to the sdk as maxBudgetUsd', async () => {
+    const queryFn: QueryFn = (params) => ({
+      [Symbol.asyncIterator]: async function* () {
+        await Promise.resolve()
+        yield params
+      }
+    })
+    const capped: AgentRunInput = {
+      ...runInput(allowReads),
+      limits: { maxTurns: 15, maxCostUsd: 0.5 }
+    }
+    const items = await collect(queryFn, capped)
+    expect(items[0]).toMatchObject({
+      raw: { options: { maxBudgetUsd: 0.5 } }
     })
   })
 

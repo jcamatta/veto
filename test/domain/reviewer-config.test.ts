@@ -70,6 +70,15 @@ describe('ReviewerConfig', () => {
     expect(Either.isLeft(decode({ ...valid, maxDiffFiles: -1 }))).toBe(true)
   })
 
+  it('decodes a fractional cost ceiling and rejects a non-positive one', () => {
+    const ok = decode({ ...valid, maxCostUsd: 0.25 })
+    expect(Either.isRight(ok)).toBe(true)
+    if (Either.isRight(ok)) {
+      expect(ok.right.maxCostUsd).toBe(0.25)
+    }
+    expect(Either.isLeft(decode({ ...valid, maxCostUsd: 0 }))).toBe(true)
+  })
+
   it('decodes identified rules and mixed shapes', () => {
     const result = decode({
       ...valid,

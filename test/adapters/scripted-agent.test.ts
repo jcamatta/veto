@@ -25,7 +25,7 @@ const input: AgentRunInput = {
   prompt: 'review this diff',
   system: 'You are a reviewer.',
   policy,
-  limits: { maxTurns: 15 },
+  limits: { maxTurns: 15, maxCostUsd: null },
   outputSchema: null,
   model: null,
   effort: null

@@ -137,6 +137,7 @@ const liveSession = ({ run, startedAt }: LiveSession) => {
     system: prompt.system,
     policy: policyFor(run),
     maxTurns: run.reviewer.config.maxTurns ?? defaultMaxTurns,
+    maxCostUsd: run.reviewer.config.maxCostUsd ?? run.ctx.settings.maxCostUsd,
     model: run.reviewer.config.model ?? null,
     effort: run.reviewer.config.effort ?? null,
     outputSchema: findingsSchemaFor(run.rules)

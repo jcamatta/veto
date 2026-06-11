@@ -33,6 +33,7 @@ type SessionInput = {
   readonly system: string
   readonly policy: AgentRunInput['policy']
   readonly maxTurns: number
+  readonly maxCostUsd: number | null
   readonly model: string | null
   readonly effort: AgentRunInput['effort']
   readonly outputSchema: Record<string, unknown>
@@ -80,7 +81,7 @@ const collectEvents = (
           prompt: input.prompt,
           system: input.system,
           policy: input.policy,
-          limits: { maxTurns: input.maxTurns },
+          limits: { maxTurns: input.maxTurns, maxCostUsd: input.maxCostUsd },
           outputSchema: input.outputSchema,
           model: input.model,
           effort: input.effort

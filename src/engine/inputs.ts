@@ -18,6 +18,7 @@ type RunSettings = {
   readonly noCache: boolean
   readonly strictScope: boolean
   readonly timeoutMs: number
+  readonly maxCostUsd: number | null
   readonly failOn: FailOn
 }
 

@@ -88,6 +88,9 @@ const buildOptions = (input: {
   tools: [...staticTools],
   allowedTools: [...staticTools],
   maxTurns: input.run.limits.maxTurns,
+  ...(input.run.limits.maxCostUsd === null
+    ? {}
+    : { maxBudgetUsd: input.run.limits.maxCostUsd }),
   settingSources: [],
   canUseTool: input.canUseTool,
   systemPrompt: {

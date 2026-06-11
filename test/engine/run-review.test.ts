@@ -41,6 +41,7 @@ const baseSettings: RunSettings = {
   noCache: false,
   strictScope: false,
   timeoutMs: 5000,
+  maxCostUsd: null,
   failOn: 'error'
 }
 

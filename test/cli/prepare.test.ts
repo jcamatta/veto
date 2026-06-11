@@ -36,6 +36,7 @@ const args = (overrides: Partial<CliArgs>): CliArgs => ({
   format: 'pretty',
   noCache: false,
   timeout: Option.none(),
+  maxCostUsd: Option.none(),
   failOn: 'error',
   ...overrides
 })
@@ -100,6 +101,16 @@ describe('prepare', () => {
     )
     expect(prepared.reviewers).toHaveLength(2)
     expect(prepared.settings.runsDir).toBe(join(dir, 'runs'))
+  })
+
+  it('defaults the cost ceiling to null and carries --max-cost-usd through', async () => {
+    const dir = configDir()
+    const byDefault = await run(args({ dir: Option.some(dir) }))
+    expect(byDefault.settings.maxCostUsd).toBeNull()
+    const capped = await run(
+      args({ dir: Option.some(dir), maxCostUsd: Option.some(0.5) })
+    )
+    expect(capped.settings.maxCostUsd).toBe(0.5)
   })
 
   it('maps --timeout seconds onto the run settings in milliseconds', async () => {
