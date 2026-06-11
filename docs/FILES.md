@@ -198,7 +198,7 @@ added, edited, renamed, or deleted.**
   attempt), readAllEvents (the whole retained history as `StoredEvent`s,
   oldest head first), baseline/record read-write, writeProjections
   (projection + rendered markdown), and prune (keep last N heads); the
-  `RunStore` tag.
+  shared `retainedHeads` prune-window constant and the `RunStore` tag.
 - `src/ports/reporter.ts` — the `Reporter` port: `ReportFormat`
   (`pretty`/`json`) and `emit(projection, format)`; the `Reporter` tag.
 - `src/ports/clock.ts` — the `ReviewClock` port (named to avoid clashing with

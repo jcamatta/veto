@@ -53,6 +53,8 @@ veto .veto/ --staged                          # staged diff (the default; flag d
 veto .veto/ --format=json                     # machine-readable output (default: pretty)
 veto .veto/ --no-cache                        # bypass the exact-replay cache
 veto .veto/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
+veto stats                                    # per-rule health from the retained run history
+veto stats --format=json                      # same, machine-readable
 ```
 
 ### Pre-commit (husky)
@@ -126,6 +128,24 @@ it expires automatically when the commit finally lands:
   findings and must say what is resolved, report genuinely new problems,
   and **not** raise fresh objections to previously-accepted unchanged code
   (no whack-a-mole).
+
+## Tuning rules with `veto stats`
+
+Judgment rules have empirical precision: the only way to know a rule is
+noisy or dead is to measure it. `veto stats` folds the retained run history
+(the last 10 heads — older runs are pruned) into a per-rule health table:
+
+```
+rule              fired  suppressed  error  warning  info  last seen
+no-cross-layer       12           5      8        4     0  a94f3c2
+keep-domain-pure      1           0      0        1     0  77b01ce
+```
+
+The tuning loop: a rule that fires constantly and gets mostly suppressed is
+noisy — sharpen its wording or delete it; a rule that never fires may be
+dead weight. `--format json` emits the same data machine-readable. The runs
+dir is anchored the same way as a review (next to the configs; `.veto/` by
+default).
 
 ## Escape hatches
 
