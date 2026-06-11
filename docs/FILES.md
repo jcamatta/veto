@@ -322,6 +322,13 @@ added, edited, renamed, or deleted.**
   statistics (model, turns, input/output and cache creation/read tokens,
   cost, duration — nullable when the backend does not report them — plus
   tool-call and denial counters).
+- `src/domain/stored-event.ts` — `StoredEvent`: a replayed `ReviewEvent`
+  tagged with the head and reviewer it was logged under (the run-history
+  read shape).
+- `src/domain/rule-stats.ts` — `SeverityCounts`, `RuleStats` (per-rule
+  fired/suppressed counts, severity histogram, last-seen head), and the
+  `RuleStatsReport` schema (`veto stats --format json` shape, incl. the
+  prune window).
 - `src/domain/review-event.ts` — the ten tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,
@@ -475,6 +482,8 @@ added, edited, renamed, or deleted.**
   fields.
 - `test/domain/reviewer-stats.test.ts` — decode tests for `ReviewerStats`
   (nullable usage, counter bounds).
+- `test/domain/rule-stats.test.ts` — decode tests for `RuleStats` and
+  `RuleStatsReport` (counts, plain-rule keys, prune window bounds).
 - `test/domain/review-event.test.ts` — decode tests for every `ReviewEvent`
   variant of the union.
 - `test/domain/errors.test.ts` — tests for the tagged error constructors and
