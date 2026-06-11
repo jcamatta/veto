@@ -53,9 +53,35 @@ veto .veto/ --staged                          # staged diff (the default; flag d
 veto .veto/ --format=json                     # machine-readable output (default: pretty)
 veto .veto/ --no-cache                        # bypass the exact-replay cache
 veto .veto/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
+veto check                                    # validate configs without running a review
+veto check .veto/ --config=extra.yaml         # same target rules as a run
+veto schema                                   # print the reviewer-config JSON Schema
 veto stats                                    # per-rule health from the retained run history
 veto stats --format=json                      # same, machine-readable
 ```
+
+### Validating configs
+
+`veto check` discovers configs exactly like a run does (positional targets,
+repeated `--config`, or the `.veto/` default), decodes each file, and prints
+a per-file `ok` / `error` line. It exits 0 when every config decodes and 2
+otherwise — no git diff, no agent, no credits. Use it in CI to keep every
+reviewer config valid.
+
+### Editor validation
+
+`veto init` writes the generated JSON Schema to `.veto/schema.json` and the
+starter config opens with a modeline:
+
+```yaml
+# yaml-language-server: $schema=./schema.json
+```
+
+With the VS Code YAML extension (or any `yaml-language-server` client) you
+get inline validation and autocompletion while editing reviewer configs.
+`veto schema` prints the same schema to stdout if you want to wire it up
+elsewhere. The schema covers structure; cross-field rules (like unique rule
+ids) are caught by `veto check`.
 
 ### Pre-commit (husky)
 

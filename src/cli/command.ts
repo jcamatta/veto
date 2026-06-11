@@ -9,11 +9,13 @@ import { Effect } from 'effect'
 import type { QueryFn } from '../adapters/sdk-agent.js'
 import type { ConfigError, GitError } from '../domain/errors.js'
 import { runReview } from '../engine/run-review.js'
+import { checkArgs, runCheck, type CheckArgs } from './check-command.js'
 import { runInit } from './init-command.js'
 import { productionLayers } from './layers.js'
 import { cliOptions, type CliArgs } from './options.js'
 import { prepare } from './prepare.js'
 import { resolveRepoRoot } from './repo-root.js'
+import { printSchema } from './schema-command.js'
 import { runStats, statsOptions } from './stats-command.js'
 
 type CliExitCode = 0 | 1 | 2
@@ -72,9 +74,30 @@ const statsSubcommand = (deps: CliDeps) =>
     )
   )
 
+const checkHandler =
+  (deps: CliDeps) =>
+  (args: CheckArgs): Effect.Effect<void, ConfigError | GitError, CliEnvironment> =>
+    resolveRepoRoot(deps.cwd ?? null).pipe(
+      Effect.flatMap((repoRoot) => runCheck({ args, repoRoot })),
+      Effect.flatMap((code) => deps.exit(code))
+    )
+
+const checkSubcommand = (deps: CliDeps) =>
+  Command.make('check', checkArgs, checkHandler(deps))
+
+const schemaSubcommand = (deps: CliDeps) =>
+  Command.make('schema', {}, () =>
+    printSchema.pipe(Effect.flatMap(() => deps.exit(0)))
+  )
+
 const makeCli = (deps: CliDeps): Cli => {
   const command = Command.make('veto', cliOptions, handler(deps)).pipe(
-    Command.withSubcommands([initSubcommand(deps), statsSubcommand(deps)])
+    Command.withSubcommands([
+      initSubcommand(deps),
+      schemaSubcommand(deps),
+      checkSubcommand(deps),
+      statsSubcommand(deps)
+    ])
   )
   const run = Command.run(command, { name: 'veto', version })
   return (argv) =>
