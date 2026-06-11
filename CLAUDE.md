@@ -36,6 +36,34 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
 - If a commit is blocked by the reviewer, read `.veto/runs/latest.json`
   and fix the findings, then commit again.
 
+## Releasing (npm)
+
+Published to npm as the scoped, public package `@jcamatta/veto` (the binary
+is still `veto`). There is **one release line — `main`** — and no per-version
+branches. A "version" is a commit on `main` that bumps `package.json`, marked
+by a git tag `vX.Y.Z`; the npm version, the `package.json` version, and the
+tag always agree.
+
+- **Bump type follows the conventional commits** since the last release:
+  only `fix`/`perf`/`chore` ⇒ **patch**; any `feat` ⇒ **minor**; any `!`
+  breaking change ⇒ **major**. While on `0.x` (unstable API), breaking
+  changes bump the **minor**, not the major — `1.0.0` is the deliberate
+  stable-API commitment.
+- **Release procedure** (respects the no-direct-commits-to-`main` and
+  conventional-`commit-msg` hooks):
+  1. Branch `chore/release-vX.Y.Z`.
+  2. `npm version X.Y.Z --no-git-tag-version` — bumps `package.json` only.
+     Do **not** let `npm version` create the commit/tag: its default message
+     is the bare number, which the `commit-msg` hook rejects.
+  3. Commit `chore: release vX.Y.Z`, open a PR, the user merges it.
+  4. **After merge**, on `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`,
+     then `npm publish`. Tag *after* merge so the tag points at the actual
+     `main` commit (a squash-merge rewrites the branch commit).
+- `npm publish` needs `npm login`. It auto-runs `prepublishOnly`
+  (`npm run check`) and `prepare` (rebuild `dist`), and `publishConfig`
+  already sets public access — no `--access` flag, and a broken build can't
+  ship. **The user runs `npm publish`** — never publish on their behalf.
+
 ## Code conventions (enforced by lint where possible)
 
 - TypeScript `strict`, ESM, Node >= 20. Effect ecosystem (`effect`,
