@@ -126,6 +126,37 @@ describe('makeCli', () => {
     expect(result.codes).toEqual([0])
   })
 
+  it('exits 1 on warnings with --fail-on=warning', async () => {
+    const dir = repoWithStagedChange()
+    const result = await runCli({
+      cwd: dir,
+      argv: [join(dir, '.veto'), '--fail-on=warning'],
+      findings: [{ ...errorFinding, severity: 'warning' }]
+    })
+    expect(result.codes).toEqual([1])
+  })
+
+  it('exits 0 on errors with --fail-on=never and reports non-blocking', async () => {
+    const dir = repoWithStagedChange()
+    const result = await runCli({
+      cwd: dir,
+      argv: [join(dir, '.veto'), '--fail-on=never'],
+      findings: [errorFinding]
+    })
+    expect(result.codes).toEqual([0])
+    const latest = join(dir, '.veto', 'runs', 'latest.json')
+    expect(readFileSync(latest, 'utf8')).toContain('"blocking": false')
+  })
+
+  it('exits 2 on an invalid --fail-on value', async () => {
+    const dir = repoWithStagedChange()
+    const result = await runCli({
+      cwd: dir,
+      argv: [join(dir, '.veto'), '--fail-on=fatal']
+    })
+    expect(result.codes).toEqual([2])
+  })
+
   it('accepts repeated --config flags instead of a directory', async () => {
     const dir = repoWithStagedChange()
     const result = await runCli({

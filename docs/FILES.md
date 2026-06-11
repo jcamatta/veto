@@ -269,7 +269,8 @@ added, edited, renamed, or deleted.**
   `NodeContext` platform layer, run via `NodeRuntime.runMain`.
 - `src/cli/options.ts` — the `@effect/cli` surface: positional config
   dir/file, repeatable `--config`, `--staged`, `--format=pretty|json`
-  (default pretty), `--no-cache`, `--timeout` (seconds), with help
+  (default pretty), `--no-cache`, `--timeout` (seconds),
+  `--fail-on=error|warning|info|never` (default error), with help
   descriptions; the decoded `CliArgs` type.
 - `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
   via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
@@ -376,8 +377,8 @@ added, edited, renamed, or deleted.**
   (acceptance criterion 8 surface).
 - `test/core/reducer.test.ts` — every event variant plus fast-check properties
   (no mutation of input state; AgentEvent noise never changes the outcome).
-- `test/core/exit-code.test.ts` — blocking detection per severity and exit-code
-  mapping.
+- `test/core/exit-code.test.ts` — blocking detection per severity at every
+  `fail-on` threshold (incl. `never`) and exit-code mapping.
 - `test/core/projection.test.ts` — projection from folded state plus git
   head/branch, derived blocking.
 - `test/core/agent-output.test.ts` — result-text extraction: last result

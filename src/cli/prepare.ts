@@ -5,7 +5,6 @@ import { sha1 } from '../adapters/sha1.js'
 import { isOk } from '../core/result.js'
 import { parseSuppressions } from '../core/suppression.js'
 import { configError, type ConfigError } from '../domain/errors.js'
-import { defaultFailOn } from '../domain/fail-on.js'
 import type { SuppressionList } from '../domain/suppression-list.js'
 import { defaultTimeoutMs, type RunReviewInput } from '../engine/inputs.js'
 import type { CliArgs } from './options.js'
@@ -90,7 +89,7 @@ const assembleInput = (input: {
     suppressions: input.suppressions,
     noCache: input.prepare.args.noCache,
     strictScope: false,
-    failOn: defaultFailOn,
+    failOn: input.prepare.args.failOn,
     timeoutMs: Option.match(input.prepare.args.timeout, {
       onNone: () => defaultTimeoutMs,
       onSome: (seconds) => seconds * 1000
