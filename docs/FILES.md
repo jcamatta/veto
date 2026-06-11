@@ -132,6 +132,9 @@ added, edited, renamed, or deleted.**
   commented starter `.veto/architect.yaml` text (cost-tuned defaults,
   bounded-reading prompt, stack-shaped placeholder rules); plus the
   `agentSnippet` CLAUDE.md feedback line.
+- `src/core/config-json-schema.ts` — `configJsonSchema`: the JSON Schema for
+  `ReviewerConfig` generated at module load via `JSONSchema.make`, consumed
+  by `veto schema` and written to `.veto/schema.json` by `veto init`.
 - `src/core/yaml-file.ts` — `isYamlFile`: the shared `.yaml`/`.yml` filename
   predicate used by config discovery and `veto init`'s clobber check.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
@@ -363,6 +366,9 @@ added, edited, renamed, or deleted.**
   decodes as `ReviewerConfig`, carries the cost-tuned defaults, shapes
   paths/rules to the stack, and instructs bounded reading; the agent snippet
   points at `latest.json`.
+- `test/core/config-json-schema.test.ts` — the generated JSON Schema has the
+  required reviewer fields, mode/effort enums, optional knobs, rejects
+  unknown keys, and never degrades to an unconstrained object.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
   drive letters, absolute detection, root resolution.
 - `test/core/tool-policy.test.ts` — allowlist, repo-root containment,
