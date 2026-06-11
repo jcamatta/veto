@@ -114,7 +114,8 @@ added, edited, renamed, or deleted.**
 - `src/core/baseline-diff.ts` — `diffBaseline`: previous baseline × current
   findings → resolved fingerprints / persisting / fresh, matched by fingerprint.
 - `src/core/prompt.ts` — `buildPrompt`: the split `ReviewPrompt` — system
-  text (reviewer persona + rules; identified rules render as `[id] text` and
+  text (reviewer persona + the caller-filtered active rules; identified
+  rules render as `[id] text` and
   findings must cite the id) and user text (staged files + diff + optional
   baseline with Layer-2 instructions + strict-JSON output instruction);
   `appendParseRetry` appends the schema error to the user text for the one
