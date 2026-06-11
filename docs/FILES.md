@@ -130,7 +130,8 @@ added, edited, renamed, or deleted.**
   never escape); plain and glob-less rules apply to every file;
   `activeRules` keeps the enabled rules that apply to at least one
   in-scope file — the set the prompt renders and the findings schema
-  enumerates.
+  enumerates; `partitionByRuleScope` splits decoded findings into those
+  whose cited rule applies to their file and out-of-scope citations.
 - `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
@@ -255,8 +256,10 @@ added, edited, renamed, or deleted.**
   retry — the backend already validated), and the text-parse path keeps
   exactly one retry with the schema error appended.
 - `src/engine/reviewer-conclude.ts` — the successful-session tail:
-  fingerprint findings, filter suppressions, diff against the baseline,
-  emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
+  fingerprint findings, drop findings whose cited rule does not apply to
+  their file (`FindingOutOfScope`, visible not silent), filter
+  suppressions, diff against the baseline, emit
+  `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
   the new baseline and run record.
 - `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: diff scoped to
   the reviewer's globs once (skip when nothing survives, or when no rule is
@@ -335,7 +338,7 @@ added, edited, renamed, or deleted.**
   statistics (model, turns, input/output and cache creation/read tokens,
   cost, duration — nullable when the backend does not report them — plus
   tool-call and denial counters).
-- `src/domain/review-event.ts` — the ten tagged `ReviewEvent` variants and
+- `src/domain/review-event.ts` — the eleven tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,
   `AgentUnavailable`, `FindingsParseError`) with constructors, usable with

@@ -279,6 +279,57 @@ describe('runReview — scope skip (acceptance 2)', () => {
     ])
   })
 
+  it('drops findings that cite a rule on a file outside its scope', async () => {
+    const twoFileRepo: FixtureRepo = {
+      ...repo,
+      diff: {
+        diffText:
+          '+++ b/src/a.ts\n+const x = 1\n+++ b/src/modules/b.ts\n+const y = 2',
+        files: ['src/a.ts', 'src/modules/b.ts']
+      }
+    }
+    const scopedReviewer: ReviewerSource = {
+      ...architect,
+      config: {
+        ...architect.config,
+        rules: [
+          {
+            id: 'tenant-id',
+            instruction: 'every query carries the tenant id',
+            paths: ['src/modules/**'] as const
+          }
+        ]
+      }
+    }
+    const offTarget: ModelFinding = {
+      severity: 'error',
+      file: 'src/a.ts',
+      line: 1,
+      rule: 'tenant-id',
+      message: 'cited outside the rule scope'
+    }
+    const onTarget: ModelFinding = {
+      severity: 'error',
+      file: 'src/modules/b.ts',
+      line: 1,
+      rule: 'tenant-id',
+      message: 'cited inside the rule scope'
+    }
+    const scripted = scriptedAgent([sayResult([offTarget, onTarget])])
+    const { code, emitted, memory } = await execute({
+      agent: scripted.layer,
+      git: fixtureGit(twoFileRepo),
+      reviewers: [scopedReviewer]
+    })
+    expect(code).toBe(1)
+    const findings = emitted[0]?.projection.reviewers[0]?.findings ?? []
+    expect(findings.map((f) => f.file)).toEqual(['src/modules/b.ts'])
+    const events = memory.events.get('abc123/architect/attempt-1') ?? []
+    expect(events.filter((e) => e._tag === 'FindingOutOfScope')).toMatchObject([
+      { rule: 'tenant-id' }
+    ])
+  })
+
   it('runs matching reviewers and skips the rest', async () => {
     const scripted = scriptedAgent([sayResult([warningFinding])])
     const { emitted } = await execute({

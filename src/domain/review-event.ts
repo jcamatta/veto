@@ -40,6 +40,12 @@ const FindingSuppressed = Schema.TaggedStruct('FindingSuppressed', {
   fingerprint: Fingerprint
 })
 
+const FindingOutOfScope = Schema.TaggedStruct('FindingOutOfScope', {
+  reviewer: Schema.NonEmptyTrimmedString,
+  fingerprint: Fingerprint,
+  rule: Schema.NonEmptyString
+})
+
 const BaselineResolved = Schema.TaggedStruct('BaselineResolved', {
   reviewer: Schema.NonEmptyTrimmedString,
   fingerprints: Schema.Array(Fingerprint)
@@ -63,6 +69,7 @@ const ReviewEvent = Schema.Union(
   ToolCallDenied,
   FindingsDecoded,
   FindingSuppressed,
+  FindingOutOfScope,
   BaselineResolved,
   ReviewerFailed,
   RunCompleted
@@ -78,6 +85,7 @@ export {
   ToolCallDenied,
   FindingsDecoded,
   FindingSuppressed,
+  FindingOutOfScope,
   BaselineResolved,
   ReviewerFailed,
   RunCompleted,

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { activeRules, ruleAppliesTo } from '../../src/core/rule-scope.js'
+import { Schema } from 'effect'
+import {
+  activeRules,
+  partitionByRuleScope,
+  ruleAppliesTo
+} from '../../src/core/rule-scope.js'
+import { Fingerprint, type Finding } from '../../src/domain/finding.js'
 
 const scoped = {
   id: 'tenant-id',
@@ -57,5 +63,33 @@ describe('activeRules', () => {
     expect(
       activeRules({ rules: [scoped, parked, 'plain rule'], files })
     ).toEqual(['plain rule'])
+  })
+})
+
+describe('partitionByRuleScope', () => {
+  const fp = Schema.decodeSync(Fingerprint)
+
+  const findingOn = (file: string): Finding => ({
+    severity: 'error',
+    file,
+    line: 1,
+    rule: 'tenant-id',
+    message: 'm',
+    fingerprint: fp('aaaaaaaaaaaa')
+  })
+
+  it('keeps findings whose cited rule applies to their file', () => {
+    const inScope = findingOn('src/modules/a.ts')
+    const outside = findingOn('src/other/a.ts')
+    expect(
+      partitionByRuleScope({ rules: [scoped], findings: [inScope, outside] })
+    ).toEqual({ applicable: [inScope], outOfScope: [outside] })
+  })
+
+  it('treats findings citing an unknown rule as out of scope', () => {
+    const finding = { ...findingOn('src/modules/a.ts'), rule: 'unknown' }
+    expect(
+      partitionByRuleScope({ rules: [scoped], findings: [finding] })
+    ).toEqual({ applicable: [], outOfScope: [finding] })
   })
 })
