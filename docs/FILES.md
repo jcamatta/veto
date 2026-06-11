@@ -129,6 +129,9 @@ added, edited, renamed, or deleted.**
   (oldest first) into per-rule `RuleStats` aggregates — fires and severity
   histogram from `FindingsDecoded`, suppressions attributed via the
   fingerprint → rule map, last-seen head; sorted by fired desc then rule.
+- `src/core/rule-stats-format.ts` — `renderRuleStats`: `RuleStats`
+  aggregates → the aligned `veto stats` table text (one line per rule,
+  short last-seen sha, prune-window note, friendly empty state).
 - `src/core/init-detect.ts` — `detectStack`: `package.json` text → the repo's
   stack (`electron` > `next` > `react` > `node`), falling back to `node` on a
   missing or malformed manifest.
@@ -380,6 +383,8 @@ added, edited, renamed, or deleted.**
   fire/severity counts and last head, suppression attribution (incl.
   never-fired fingerprints), plain-string rule keys, sort order, unrelated
   events ignored.
+- `test/core/rule-stats-format.test.ts` — render tests: aligned header and
+  rows, prune-window note, short-sha truncation, empty state.
 - `test/core/init-detect.test.ts` — stack-detection table: electron/next/react
   precedence, plain-library and missing/malformed-manifest fallbacks to node.
 - `test/core/init-hook.test.ts` — idempotent hook append: appends with and
