@@ -90,10 +90,12 @@ added, edited, renamed, or deleted.**
 - `src/core/result.ts` — the local `Result<Ok, Err>` discriminated union with
   constructors (`ok`, `err`), guards (`isOk`, `isErr`), and `map`; used by pure
   code where Effect is overkill.
-- `src/core/glob-scope.ts` — `buildFileMatcher`: optional `paths`/`ignore`
+- `src/core/glob-matcher.ts` — `buildFileMatcher`: optional `paths`/`ignore`
   globs → file predicate (picomatch, dotfiles included; absent `paths`
-  matches everything); `scopeFiles`: config globs × staged file list →
-  in-scope files and the matched/skip decision.
+  matches everything, absent/empty `ignore` excludes nothing).
+- `src/core/glob-scope.ts` — `scopeFiles`: config `paths`/`ignore` globs ×
+  staged file list → in-scope files and the matched/skip decision (via
+  `buildFileMatcher`).
 - `src/core/diff-scope.ts` — `scopeDiff`: split the unified diff into
   per-file segments (`diff --git` headers) and keep only the reviewer's
   in-scope files, so each reviewer is shown — and its replay cache is keyed
@@ -346,6 +348,8 @@ added, edited, renamed, or deleted.**
 - `test/core/diff-scope.test.ts` — diff segmentation and scoping: glob
   filtering, scoped file list, full-segment preservation, preamble and
   unparseable fail-safes, identity on fully in-scope diffs.
+- `test/core/glob-matcher.test.ts` — file-predicate building: match-all
+  default, paths restriction with dotfiles, ignore exclusion, empty ignore.
 - `test/core/glob-scope.test.ts` — scope matching, ignore globs, dotfiles, and
   the no-match skip decision.
 - `test/core/hashing.test.ts` — diff/config hash delegation and replay-key

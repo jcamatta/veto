@@ -1,5 +1,5 @@
 import type { ReviewerRule } from '../domain/reviewer-config.js'
-import { buildFileMatcher } from './glob-scope.js'
+import { buildFileMatcher } from './glob-matcher.js'
 
 type RuleScopeInput = {
   readonly rule: ReviewerRule
