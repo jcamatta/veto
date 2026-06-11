@@ -163,11 +163,13 @@ added, edited, renamed, or deleted.**
 - `src/core/reducer.ts` — `RunState`, `initialState`, and the curried event
   reducer `reduce(state)(event)` folding the `ReviewEvent` union into
   per-reviewer outcomes, key/attempt/hashes, and the blocking flag.
-- `src/core/exit-code.ts` — `isBlocking` (any error-severity finding) and the
-  severity → exit code mapping (`0`/`1`; `2` is CLI misuse, mapped elsewhere).
+- `src/core/exit-code.ts` — `blocksAt(threshold)` (any finding at or above
+  the `FailOn` threshold; `never` blocks nothing), `isBlocking`
+  (= `blocksAt('error')`), and the blocking → exit code mapping (`0`/`1`;
+  `2` is CLI misuse, mapped elsewhere).
 - `src/core/projection.ts` — `buildProjection`: `RunState` + timestamp + git
-  head/branch → `LatestProjection` (the `latest.json` shape), blocking derived
-  from findings.
+  head/branch + `failOn` threshold → `LatestProjection` (the `latest.json`
+  shape), blocking derived from findings via the threshold.
 - `src/core/agent-output.ts` — pull the final result out of the raw agent
   message stream: `resultText` (last `{ type: 'result', result }`),
   `structuredOutput` (the last result message's validated
@@ -258,7 +260,8 @@ added, edited, renamed, or deleted.**
 
 - `src/engine/inputs.ts` — the engine's input contract: `ReviewerSource`
   (config + raw YAML source), `RunSettings` (hash, repo root, suppressions,
-  no-cache, strict scope, timeout), `ReviewContext` (settings + staged diff +
+  no-cache, strict scope, timeout, fail-on threshold), `ReviewContext`
+  (settings + staged diff +
   head/branch), `RunReviewInput`, and the 90 s `defaultTimeoutMs`.
 - `src/engine/reviewer-run.ts` — the per-reviewer run value (`ReviewerRun`:
   context, key, attempt, baseline, hashes), `appendEvents` (the event-log
@@ -294,7 +297,8 @@ added, edited, renamed, or deleted.**
   `NodeContext` platform layer, run via `NodeRuntime.runMain`.
 - `src/cli/options.ts` — the `@effect/cli` surface: positional config
   dir/file, repeatable `--config`, `--staged`, `--format=pretty|json`
-  (default pretty), `--no-cache`, `--timeout` (seconds), with help
+  (default pretty), `--no-cache`, `--timeout` (seconds),
+  `--fail-on=error|warning|info|never` (default error), with help
   descriptions; the decoded `CliArgs` type.
 - `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
   via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
@@ -350,6 +354,9 @@ added, edited, renamed, or deleted.**
 - `src/domain/finding.ts` — `Severity`, the branded `Fingerprint`, the
   model-output `ModelFinding`/`ModelFindings` (no fingerprint), and the
   wrapper-fingerprinted `Finding`.
+- `src/domain/fail-on.ts` — `FailOn` literal schema
+  (`error|warning|info|never`): the exit-code severity threshold, plus the
+  `defaultFailOn` (`error`) constant.
 - `src/domain/run-key.ts` — `RunKey` schema (HEAD sha, branch, reviewer) and the
   `emptyRepoSentinel` head constant for repos without a HEAD.
 - `src/domain/baseline.ts` — `Baseline` schema: findings carried between
@@ -432,8 +439,8 @@ added, edited, renamed, or deleted.**
   (acceptance criterion 8 surface).
 - `test/core/reducer.test.ts` — every event variant plus fast-check properties
   (no mutation of input state; AgentEvent noise never changes the outcome).
-- `test/core/exit-code.test.ts` — blocking detection per severity and exit-code
-  mapping.
+- `test/core/exit-code.test.ts` — blocking detection per severity at every
+  `fail-on` threshold (incl. `never`) and exit-code mapping.
 - `test/core/projection.test.ts` — projection from folded state plus git
   head/branch, derived blocking.
 - `test/core/agent-output.test.ts` — result-text extraction: last result
@@ -540,6 +547,8 @@ added, edited, renamed, or deleted.**
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.
 - `test/domain/finding.test.ts` — decode tests for `Fingerprint`,
   `ModelFinding`, `ModelFindings`, and `Finding`.
+- `test/domain/fail-on.test.ts` — decode tests for `FailOn` and the `error`
+  default.
 - `test/domain/run-key.test.ts` — decode tests for `RunKey` and the empty-repo
   sentinel.
 - `test/domain/baseline.test.ts` — decode tests for `Baseline`.

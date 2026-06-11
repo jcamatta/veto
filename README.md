@@ -53,6 +53,7 @@ veto .veto/ --staged                          # staged diff (the default; flag d
 veto .veto/ --format=json                     # machine-readable output (default: pretty)
 veto .veto/ --no-cache                        # bypass the exact-replay cache
 veto .veto/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
+veto .veto/ --fail-on=warning                 # block on warnings too (default error; never = report-only)
 veto check                                    # validate configs without running a review
 veto check .veto/ --config=extra.yaml         # same target rules as a run
 veto schema                                   # print the reviewer-config JSON Schema
@@ -98,9 +99,14 @@ npx veto .veto/ --staged
 
 | Code | Meaning |
 |------|---------|
-| 0    | no findings, or only `warning`/`info`, or fail-open (agent unavailable, timeout, parse failure after retry) |
-| 1    | at least one `error`-severity finding — commit blocked |
+| 0    | no finding at or above the `--fail-on` threshold, or fail-open (agent unavailable, timeout, parse failure after retry) |
+| 1    | at least one finding at or above the `--fail-on` threshold — commit blocked |
 | 2    | engine misuse (bad config, not a git repo, bad flags) |
+
+`--fail-on` sets the lowest severity that blocks (`info < warning < error`);
+the default `error` keeps the behavior above. `--fail-on=never` makes the run
+report-only: findings are still written to `latest.json`, but findings never
+fail the run (exit 2 misuse paths are unaffected).
 
 ## Reviewer config
 
