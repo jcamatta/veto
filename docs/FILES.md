@@ -288,6 +288,10 @@ added, edited, renamed, or deleted.**
 - `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
   via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
   `GitError` ("not a git repository", CLI misuse).
+- `src/cli/config-path.ts` — the shared config-anchoring helpers used by
+  `prepare` and `veto stats`: `defaultVetoDir` (`<repoRoot>/.veto` when it
+  exists, else `ConfigError`) and `baseDirOf` (directory target → itself,
+  file target → its parent).
 - `src/cli/prepare.ts` — `prepare`: `CliArgs` + repo root → the engine's
   `RunReviewInput` plus the runs dir; resolves targets (positional +
   `--config`, none → `<repoRoot>/.veto` when that directory exists,
@@ -302,9 +306,15 @@ added, edited, renamed, or deleted.**
   repo root, refuse when `.veto/` already has configs, detect the stack from
   `package.json`, write the starter config, idempotently wire
   `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
+- `src/cli/stats-command.ts` — `runStats`: the `veto stats` shell — resolve
+  the repo root, anchor the runs dir next to the configs (positional/
+  `--config` target or the `.veto/` default; mirrors `prepare`'s convention
+  without running a review), read the retained history through `RunStore`,
+  fold with `foldRuleStats`, and print the table (or the Schema-encoded
+  `RuleStatsReport` for `--format json`).
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
-  prepare → `runReview` → exit with the run's code) with the `init`
-  subcommand wired in, plus exit-code mapping
+  prepare → `runReview` → exit with the run's code) with the `init` and
+  `stats` subcommands wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -489,7 +499,12 @@ added, edited, renamed, or deleted.**
   with an injected fake SDK query (zero credits): exit 0 clean / warnings,
   exit 1 on error findings, projections written, repeated `--config`, the
   bare `veto --staged` default to `.veto/`, exit 2 misuse (no repo, missing
-  config, no targets and no `.veto/`, invalid flag), `--help`.
+  config, no targets and no `.veto/`, invalid flag), the `stats`
+  subcommand exit 0, `--help`.
+- `test/cli/stats-command.test.ts` — `veto stats` on real temp repos with a
+  hand-written runs dir and a fake terminal: per-rule table (corrupt lines
+  skipped), empty state, decodable `--format json` report, `--config`
+  anchoring, and failures (no `.veto/`, not a repo).
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.

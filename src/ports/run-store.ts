@@ -38,6 +38,8 @@ type RunStoreService = {
   readonly prune: (keep: number) => Effect.Effect<void>
 }
 
+const retainedHeads = 10
+
 class RunStore extends Context.Tag('veto/RunStore')<
   RunStore,
   RunStoreService
@@ -49,5 +51,6 @@ export {
   type WriteRecordInput,
   type WriteProjectionsInput,
   type RunStoreService,
+  retainedHeads,
   RunStore
 }
