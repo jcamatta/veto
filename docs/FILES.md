@@ -53,9 +53,14 @@ added, edited, renamed, or deleted.**
   required past 30 source lines (locks, generated output, docs, and .husky
   itself excluded).
 - `.claude/skills/finish-plan/SKILL.md` — the plan-closing skill: verify the
-  plan is done and the checks are green, draft the PR description from the
-  plan, remove the plan doc, push the branch, and open the GitHub PR for the
+  plan is done and the checks are green, run `test-functionality` for proof,
+  draft the PR body (plan conformance, risk flags, business rules, evidence),
+  remove the plan doc, push the branch, and open the GitHub PR for the
   user's review.
+- `.claude/skills/test-functionality/SKILL.md` — the evidence skill: exercise
+  the branch's change for real (built CLI against a fixture repo, or
+  Playwright for a UI) and return a "Proof it works" report with real
+  transcripts and a PASS/FAIL verdict. Called by `finish-plan` before any PR.
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, effects at the edges, no
   duplication, behavior-focused tests) over `src`/`test`; documentation is
