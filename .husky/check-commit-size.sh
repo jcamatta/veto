@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Enforce a commit size budget so changes stay small and reviewable.
 
+# Merge commits aggregate changes that were already budgeted commit by
+# commit on their own branches — skip them.
+GIT_DIR_PATH=$(git rev-parse --git-dir)
+if [ -f "$GIT_DIR_PATH/MERGE_HEAD" ]; then
+  exit 0
+fi
+
 MAX_WEIGHTED_LINES=300
 MAX_SOURCE_FILES=15
 MIN_LINES_REQUIRING_TESTS=30

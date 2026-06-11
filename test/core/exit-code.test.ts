@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Schema } from 'effect'
-import { exitCode, isBlocking } from '../../src/core/exit-code.js'
+import { blocksAt, exitCode, isBlocking } from '../../src/core/exit-code.js'
 import { Finding, Fingerprint, Severity } from '../../src/domain/finding.js'
 import { ReviewerOutcome } from '../../src/domain/latest-projection.js'
 
@@ -33,6 +33,39 @@ describe('isBlocking', () => {
 
   it('does not block with no reviewers', () => {
     expect(isBlocking([])).toBe(false)
+  })
+})
+
+describe('blocksAt', () => {
+  it('at error blocks only on error findings', () => {
+    expect(blocksAt('error')([outcome('error')])).toBe(true)
+    expect(blocksAt('error')([outcome('warning')])).toBe(false)
+    expect(blocksAt('error')([outcome('info')])).toBe(false)
+  })
+
+  it('at warning blocks on warning and error findings', () => {
+    expect(blocksAt('warning')([outcome('error')])).toBe(true)
+    expect(blocksAt('warning')([outcome('warning')])).toBe(true)
+    expect(blocksAt('warning')([outcome('info')])).toBe(false)
+  })
+
+  it('at info blocks on any finding', () => {
+    expect(blocksAt('info')([outcome('error')])).toBe(true)
+    expect(blocksAt('info')([outcome('warning')])).toBe(true)
+    expect(blocksAt('info')([outcome('info')])).toBe(true)
+  })
+
+  it('at never blocks on nothing', () => {
+    expect(blocksAt('never')([outcome('error')])).toBe(false)
+    expect(blocksAt('never')([outcome('warning')])).toBe(false)
+    expect(blocksAt('never')([outcome('info')])).toBe(false)
+  })
+
+  it('never blocks without findings, at any threshold', () => {
+    expect(blocksAt('info')([])).toBe(false)
+    expect(
+      blocksAt('info')([{ name: 'a', status: 'skipped', findings: [], resolved: [] }])
+    ).toBe(false)
   })
 })
 

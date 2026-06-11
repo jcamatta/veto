@@ -85,7 +85,9 @@ describe('renderPretty', () => {
 
   it('marks blocking runs and points at the full report', () => {
     const text = renderPretty(projection)
-    expect(text).toContain('BLOCKING: error findings present.')
+    expect(text).toContain(
+      'BLOCKING: findings at or above the fail-on threshold.'
+    )
     expect(text).toContain('Full report: .veto/runs/latest.md')
   })
 

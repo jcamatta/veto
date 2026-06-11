@@ -3,6 +3,8 @@ import { scopeDiff } from '../core/diff-scope.js'
 import { findingsSchemaFor } from '../core/findings-schema.js'
 import { configHash, diffHash } from '../core/hashing.js'
 import { buildPrompt } from '../core/prompt.js'
+import { activeRules } from '../core/rule-scope.js'
+import type { ReviewerRule } from '../domain/reviewer-config.js'
 import { filterSuppressed } from '../core/suppression.js'
 import { evaluateToolCall, type PolicyDecision } from '../core/tool-policy.js'
 import type { Baseline } from '../domain/baseline.js'
@@ -43,6 +45,7 @@ type Dispatch = {
   readonly record: RunRecord | null
   readonly baseline: Baseline | null
   readonly diff: StagedDiff
+  readonly rules: readonly ReviewerRule[]
 }
 
 
@@ -69,18 +72,19 @@ const policyFor =
       scope: run.ctx.settings.strictScope ? run.reviewer.config.paths : null
     })
 
-const skipped = (
-  key: RunKey
-): Effect.Effect<readonly ReviewEvent[], never, RunStore> =>
+type Skip = {
+  readonly key: RunKey
+  readonly reason: 'no-matching-paths' | 'no-active-rules'
+}
+
+const skipped = ({
+  key,
+  reason
+}: Skip): Effect.Effect<readonly ReviewEvent[], never, RunStore> =>
   appendEvents({
     key,
     attempt: 1,
-    events: [
-      ReviewerSkipped.make({
-        reviewer: key.reviewer,
-        reason: 'no-matching-paths'
-      })
-    ]
+    events: [ReviewerSkipped.make({ reviewer: key.reviewer, reason })]
   })
 
 const replay = (
@@ -123,6 +127,7 @@ const failOpen =
 const liveSession = ({ run, startedAt }: LiveSession) => {
   const prompt = buildPrompt({
     config: run.reviewer.config,
+    rules: run.rules,
     diff: run.diff,
     baseline: run.baseline
   })
@@ -135,7 +140,7 @@ const liveSession = ({ run, startedAt }: LiveSession) => {
     maxTurns: run.reviewer.config.maxTurns ?? defaultMaxTurns,
     model: run.reviewer.config.model ?? null,
     effort: run.reviewer.config.effort ?? null,
-    outputSchema: findingsSchemaFor(run.reviewer.config.rules)
+    outputSchema: findingsSchemaFor(run.rules)
   }).pipe(
     Effect.timeout(
       Duration.millis(
@@ -213,6 +218,7 @@ const dispatch = (
     attempt: hit !== null ? hit.attempt : (input.record?.attempt ?? 0) + 1,
     baseline: input.baseline,
     diff: input.diff,
+    rules: input.rules,
     diffHash: dHash,
     configHash: cHash
   }
@@ -235,7 +241,14 @@ const runReviewer =
     }
     const diff = scopeDiff({ config: reviewer.config, diff: ctx.diff })
     if (diff.files.length === 0) {
-      return skipped(key)
+      return skipped({ key, reason: 'no-matching-paths' })
+    }
+    const active = activeRules({
+      rules: reviewer.config.rules,
+      files: diff.files
+    })
+    if (active.length === 0) {
+      return skipped({ key, reason: 'no-active-rules' })
     }
     return RunStore.pipe(
       Effect.flatMap((store) =>
@@ -245,7 +258,7 @@ const runReviewer =
         })
       ),
       Effect.flatMap(({ record, baseline }) =>
-        dispatch({ ctx, reviewer, key, record, baseline, diff })
+        dispatch({ ctx, reviewer, key, record, baseline, diff, rules: active })
       )
     )
   }

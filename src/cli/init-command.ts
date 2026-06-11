@@ -14,6 +14,7 @@ import {
   type ConfigError,
   type GitError
 } from '../domain/errors.js'
+import { configJsonSchemaText } from '../core/config-json-schema.js'
 import { resolveRepoRoot } from './repo-root.js'
 
 type InitEnv = {
@@ -64,14 +65,19 @@ const writeStarter =
     readonly stack: Stack
   }): Effect.Effect<void> => {
     const file = env.path.join(input.vetoDir, 'architect.yaml')
+    const schemaFile = env.path.join(input.vetoDir, 'schema.json')
     return env.fs
       .makeDirectory(input.vetoDir, { recursive: true })
       .pipe(
         Effect.zipRight(
           env.fs.writeFileString(file, renderStarterConfig(input.stack))
         ),
+        Effect.zipRight(
+          env.fs.writeFileString(schemaFile, `${configJsonSchemaText}\n`)
+        ),
         Effect.orDie,
-        Effect.zipRight(display(env)(`created ${file} (${input.stack} starter)`))
+        Effect.zipRight(display(env)(`created ${file} (${input.stack} starter)`)),
+        Effect.zipRight(display(env)(`created ${schemaFile} (editor validation)`))
       )
   }
 

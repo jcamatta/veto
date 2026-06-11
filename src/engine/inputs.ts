@@ -1,4 +1,5 @@
 import type { HashFn } from '../core/hashing.js'
+import type { FailOn } from '../domain/fail-on.js'
 import type { ReviewerConfig } from '../domain/reviewer-config.js'
 import type { StagedDiff } from '../domain/staged-diff.js'
 import type { SuppressionList } from '../domain/suppression-list.js'
@@ -17,6 +18,7 @@ type RunSettings = {
   readonly noCache: boolean
   readonly strictScope: boolean
   readonly timeoutMs: number
+  readonly failOn: FailOn
 }
 
 type ReviewContext = {

@@ -1,24 +1,17 @@
 import { FileSystem, Path } from '@effect/platform'
-import type { PlatformError } from '@effect/platform/Error'
-import { Array as Arr, Effect, Layer, Option, Order, Schema } from 'effect'
+import { Array as Arr, Effect, Layer, Schema } from 'effect'
 import { Baseline } from '../domain/baseline.js'
 import { LatestProjection } from '../domain/latest-projection.js'
 import { ReviewEvent } from '../domain/review-event.js'
 import type { RunKey } from '../domain/run-key.js'
 import { RunRecord } from '../domain/run-record.js'
 import { RunStore, type RunStoreService } from '../ports/run-store.js'
-
-type StoreEnv = {
-  readonly fs: FileSystem.FileSystem
-  readonly path: Path.Path
-  readonly runsDir: string
-}
-
-type HeadEntry = {
-  readonly name: string
-  readonly directory: boolean
-  readonly mtime: number
-}
+import {
+  byNewest,
+  headEntries,
+  readAllEvents,
+  type StoreEnv
+} from './fs-run-store-read.js'
 
 const keyDir =
   (env: StoreEnv) =>
@@ -125,29 +118,6 @@ const writeProjections =
       Effect.asVoid
     )
 
-const statEntry =
-  (env: StoreEnv) =>
-  (name: string): Effect.Effect<HeadEntry, PlatformError> =>
-    env.fs.stat(env.path.join(env.runsDir, name)).pipe(
-      Effect.map((info) => ({
-        name,
-        directory: info.type === 'Directory',
-        mtime: Option.getOrElse(info.mtime, () => new Date(0)).getTime()
-      }))
-    )
-
-const headEntries = (env: StoreEnv): Effect.Effect<readonly HeadEntry[]> =>
-  env.fs.readDirectory(env.runsDir).pipe(
-    Effect.flatMap((names) => Effect.forEach(names, statEntry(env))),
-    Effect.map((entries) => entries.filter((entry) => entry.directory)),
-    Effect.orElseSucceed(() => [])
-  )
-
-const byNewest: Order.Order<HeadEntry> = Order.mapInput(
-  Order.reverse(Order.number),
-  (entry: HeadEntry) => entry.mtime
-)
-
 const prune =
   (env: StoreEnv): RunStoreService['prune'] =>
   (keep) =>
@@ -167,6 +137,7 @@ const prune =
 
 const makeService = (env: StoreEnv): RunStoreService => ({
   appendEvent: appendEvent(env),
+  readAllEvents: readAllEvents(env),
   readBaseline: (key) =>
     readJson(env)({ file: baselineFile(env)(key), schema: Baseline }),
   writeBaseline: (input) =>

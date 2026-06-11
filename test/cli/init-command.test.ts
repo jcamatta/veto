@@ -50,6 +50,18 @@ describe('veto init', () => {
     expect(readFileSync(starter, 'utf8')).toContain('name: architect')
   })
 
+  it('writes .veto/schema.json so the modeline resolves', async () => {
+    const dir = emptyRepo()
+    const codes = await runInitCli(dir)
+    expect(codes).toEqual([0])
+    const schemaFile = join(dir, '.veto', 'schema.json')
+    expect(existsSync(schemaFile)).toBe(true)
+    const schema = JSON.parse(readFileSync(schemaFile, 'utf8')) as {
+      readonly required?: readonly string[]
+    }
+    expect(schema.required).toContain('rules')
+  })
+
   it('shapes the starter to the stack detected from package.json', async () => {
     const dir = emptyRepo()
     writeFileSync(

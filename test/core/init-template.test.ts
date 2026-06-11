@@ -42,8 +42,19 @@ describe('renderStarterConfig', () => {
     ).toBe(true)
   })
 
+  it('starts with the yaml-language-server modeline for editor validation', () => {
+    const [firstLine] = renderStarterConfig('node').split('\n')
+    expect(firstLine).toBe('# yaml-language-server: $schema=./schema.json')
+  })
+
   it('tells the user the rules are placeholders to replace', () => {
     expect(renderStarterConfig('node')).toContain('replace them')
+  })
+
+  it('uses the instruction key for placeholder rules', () => {
+    const rendered = renderStarterConfig('node')
+    expect(rendered).toContain('instruction: ')
+    expect(rendered).not.toMatch(/^\s+rule: /m)
   })
 
   it('instructs bounded reading in the system prompt', () => {

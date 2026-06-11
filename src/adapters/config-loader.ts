@@ -82,6 +82,17 @@ const loadOne =
       )
     )
 
+const discoverConfigs = (
+  target: string
+): Effect.Effect<
+  readonly string[],
+  ConfigError,
+  FileSystem.FileSystem | Path.Path
+> =>
+  Effect.all({ fs: FileSystem.FileSystem, path: Path.Path }).pipe(
+    Effect.flatMap((env) => discover(env)(target))
+  )
+
 const loadConfigs = (
   target: string
 ): Effect.Effect<
@@ -97,4 +108,4 @@ const loadConfigs = (
     )
   )
 
-export { type LoadedConfig, loadConfigs }
+export { type LoadedConfig, discoverConfigs, loadConfigs }
