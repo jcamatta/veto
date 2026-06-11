@@ -58,6 +58,10 @@ added, edited, renamed, or deleted.**
   draft the PR body (plan conformance, risk flags, business rules, evidence),
   remove the plan doc, push the branch, and open the GitHub PR for the
   user's review.
+- `.claude/skills/address-pr-review/SKILL.md` — the review-worker skill: run
+  by the agent that made the change, it collects the observations on the
+  branch's open PR, fixes the valid ones in small commits, replies on the PR
+  with reasoning for the invalid ones, and pushes.
 - `.claude/skills/test-functionality/SKILL.md` — the evidence skill: exercise
   the branch's change for real (built CLI against a fixture repo, or
   Playwright for a UI) and return a "Proof it works" report with real
