@@ -4,6 +4,7 @@ import type { LatestProjection } from '../domain/latest-projection.js'
 import type { ReviewEvent } from '../domain/review-event.js'
 import type { RunKey } from '../domain/run-key.js'
 import type { RunRecord } from '../domain/run-record.js'
+import type { StoredEvent } from '../domain/stored-event.js'
 
 type AppendEventInput = {
   readonly key: RunKey
@@ -28,6 +29,7 @@ type WriteProjectionsInput = {
 
 type RunStoreService = {
   readonly appendEvent: (input: AppendEventInput) => Effect.Effect<void>
+  readonly readAllEvents: Effect.Effect<readonly StoredEvent[]>
   readonly readBaseline: (key: RunKey) => Effect.Effect<Baseline | null>
   readonly writeBaseline: (input: WriteBaselineInput) => Effect.Effect<void>
   readonly readRecord: (key: RunKey) => Effect.Effect<RunRecord | null>

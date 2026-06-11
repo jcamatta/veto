@@ -188,8 +188,10 @@ added, edited, renamed, or deleted.**
   `AgentService.run` returning a `Stream` failing with `AgentUnavailable`;
   the `Agent` Context tag.
 - `src/ports/run-store.ts` — the `RunStore` port: appendEvent (per key +
-  attempt), baseline/record read-write, writeProjections (projection +
-  rendered markdown), and prune (keep last N heads); the `RunStore` tag.
+  attempt), readAllEvents (the whole retained history as `StoredEvent`s,
+  oldest head first), baseline/record read-write, writeProjections
+  (projection + rendered markdown), and prune (keep last N heads); the
+  `RunStore` tag.
 - `src/ports/reporter.ts` — the `Reporter` port: `ReportFormat`
   (`pretty`/`json`) and `emit(projection, format)`; the `Reporter` tag.
 - `src/ports/clock.ts` — the `ReviewClock` port (named to avoid clashing with
@@ -211,6 +213,11 @@ added, edited, renamed, or deleted.**
   key/attempt, Schema-encoded baseline/record/latest read-write (corrupt or
   missing reads → null), prune to the most recent N HEAD dirs by mtime; store
   write failures die (not part of fail-open).
+- `src/adapters/fs-run-store-read.ts` — the run-history read side shared by
+  the fs store: head-dir listing with mtime ordering (also used by prune)
+  and `readAllEvents` (walk head/reviewer dirs, attempt files in attempt
+  order, decode JSONL lines via the `ReviewEvent` schema, skip corrupt
+  lines).
 - `src/adapters/terminal-reporter.ts` — the `Reporter` port on
   `@effect/platform` `Terminal`: pretty format via `renderPretty`, json format
   via the Schema-encoded `LatestProjection`.
@@ -408,7 +415,8 @@ added, edited, renamed, or deleted.**
   `unavailableAgent` failing with `AgentUnavailable`.
 - `test/adapters/in-memory-run-store.ts` — in-memory `RunStore` adapter over
   Maps keyed by `head/reviewer`, exposing its memory for assertions; prune
-  keeps the last N heads by insertion order.
+  keeps the last N heads by insertion order; readAllEvents replays the maps
+  in insertion order.
 - `test/adapters/collector-reporter.ts` — collector `Reporter` adapter
   recording every emitted projection + format in order.
 - `test/adapters/fixed-clock.ts` — fixed `ReviewClock` adapter returning one
@@ -420,7 +428,8 @@ added, edited, renamed, or deleted.**
   `AgentUnavailable` failure stream.
 - `test/adapters/in-memory-run-store.test.ts` — event append per key/attempt,
   baseline/record round-trips and null misses, key isolation, projection
-  collection, and head pruning.
+  collection, head pruning, and readAllEvents replay (tagged, ordered,
+  empty store).
 - `test/adapters/collector-reporter.test.ts` — ordered collection of emitted
   projections with formats.
 - `test/adapters/fixed-clock.test.ts` — the fixed instant is returned on every
@@ -435,7 +444,8 @@ added, edited, renamed, or deleted.**
   `GitError`s.
 - `test/adapters/fs-run-store.test.ts` — integration tests on a temp runs dir:
   self-gitignore creation, decodable JSONL event lines, baseline/record
-  round-trips (corrupt → null), projection files, mtime-based head pruning.
+  round-trips (corrupt → null), projection files, mtime-based head pruning,
+  and readAllEvents (oldest head first, corrupt lines skipped, missing dir).
 - `test/adapters/terminal-reporter.test.ts` — pretty and json emission
   captured through a fake `Terminal`.
 - `test/adapters/sdk-agent.test.ts` — the SDK adapter against an injected fake
