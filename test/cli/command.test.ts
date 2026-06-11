@@ -172,6 +172,12 @@ describe('makeCli', () => {
     expect(result.codes).toEqual([2])
   })
 
+  it('serves the stats subcommand and exits 0', async () => {
+    const dir = repoWithStagedChange()
+    const result = await runCli({ cwd: dir, argv: ['stats'] })
+    expect(result.codes).toEqual([0])
+  })
+
   it('serves --help without running a review', async () => {
     const dir = repoWithStagedChange()
     const result = await runCli({ cwd: dir, argv: ['--help'] })

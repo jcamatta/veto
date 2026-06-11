@@ -4,9 +4,10 @@ import { loadConfigs, type LoadedConfig } from '../adapters/config-loader.js'
 import { sha1 } from '../adapters/sha1.js'
 import { isOk } from '../core/result.js'
 import { parseSuppressions } from '../core/suppression.js'
-import { configError, type ConfigError } from '../domain/errors.js'
+import { type ConfigError } from '../domain/errors.js'
 import type { SuppressionList } from '../domain/suppression-list.js'
 import { defaultTimeoutMs, type RunReviewInput } from '../engine/inputs.js'
+import { baseDirOf, defaultVetoDir } from './config-path.js'
 import type { CliArgs } from './options.js'
 
 type PrepareInput = {
@@ -26,21 +27,10 @@ type ResolvedTargets = {
 
 const defaultTarget =
   (env: PrepareEnv) =>
-  (repoRoot: string): Effect.Effect<ResolvedTargets, ConfigError> => {
-    const candidate = env.path.join(repoRoot, '.veto')
-    return env.fs.stat(candidate).pipe(
-      Effect.option,
-      Effect.flatMap((info) =>
-        Option.isSome(info) && info.value.type === 'Directory'
-          ? Effect.succeed({ targets: [candidate], first: candidate })
-          : Effect.fail(
-              configError(
-                'no reviewer configs found: no .veto/ in the repo root — run veto init, pass a config directory, or use --config'
-              )
-            )
-      )
+  (repoRoot: string): Effect.Effect<ResolvedTargets, ConfigError> =>
+    defaultVetoDir(env)(repoRoot).pipe(
+      Effect.map((candidate) => ({ targets: [candidate], first: candidate }))
     )
-  }
 
 const targetsOf =
   (env: PrepareEnv) =>
@@ -51,16 +41,6 @@ const targetsOf =
       ? defaultTarget(env)(input.repoRoot)
       : Effect.succeed({ targets, first })
   }
-
-const baseDirOf =
-  (env: PrepareEnv) =>
-  (target: string): Effect.Effect<string> =>
-    env.fs.stat(target).pipe(
-      Effect.map((info) =>
-        info.type === 'Directory' ? target : env.path.dirname(target)
-      ),
-      Effect.orElseSucceed(() => env.path.dirname(target))
-    )
 
 const readSuppressions =
   (env: PrepareEnv) =>

@@ -85,6 +85,9 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
+- `docs/plans/rule-stats.md` — `veto stats`: per-rule health aggregated from
+  the retained run-history event logs (fired / suppressed / severity
+  histogram / last seen), the evidence base for tuning or parking rules.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
@@ -127,6 +130,13 @@ added, edited, renamed, or deleted.**
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
   rule citations instead of trusting the model to echo them.
+- `src/core/rule-stats.ts` — `foldRuleStats`: fold `StoredEvent` history
+  (oldest first) into per-rule `RuleStats` aggregates — fires and severity
+  histogram from `FindingsDecoded`, suppressions attributed via the
+  fingerprint → rule map, last-seen head; sorted by fired desc then rule.
+- `src/core/rule-stats-format.ts` — `renderRuleStats`: `RuleStats`
+  aggregates → the aligned `veto stats` table text (one line per rule,
+  short last-seen sha, prune-window note, friendly empty state).
 - `src/core/init-detect.ts` — `detectStack`: `package.json` text → the repo's
   stack (`electron` > `next` > `react` > `node`), falling back to `node` on a
   missing or malformed manifest.
@@ -195,8 +205,10 @@ added, edited, renamed, or deleted.**
   `AgentService.run` returning a `Stream` failing with `AgentUnavailable`;
   the `Agent` Context tag.
 - `src/ports/run-store.ts` — the `RunStore` port: appendEvent (per key +
-  attempt), baseline/record read-write, writeProjections (projection +
-  rendered markdown), and prune (keep last N heads); the `RunStore` tag.
+  attempt), readAllEvents (the whole retained history as `StoredEvent`s,
+  oldest head first), baseline/record read-write, writeProjections
+  (projection + rendered markdown), and prune (keep last N heads); the
+  shared `retainedHeads` prune-window constant and the `RunStore` tag.
 - `src/ports/reporter.ts` — the `Reporter` port: `ReportFormat`
   (`pretty`/`json`) and `emit(projection, format)`; the `Reporter` tag.
 - `src/ports/clock.ts` — the `ReviewClock` port (named to avoid clashing with
@@ -218,6 +230,11 @@ added, edited, renamed, or deleted.**
   key/attempt, Schema-encoded baseline/record/latest read-write (corrupt or
   missing reads → null), prune to the most recent N HEAD dirs by mtime; store
   write failures die (not part of fail-open).
+- `src/adapters/fs-run-store-read.ts` — the run-history read side shared by
+  the fs store: head-dir listing with mtime ordering (also used by prune)
+  and `readAllEvents` (walk head/reviewer dirs, attempt files in attempt
+  order, decode JSONL lines via the `ReviewEvent` schema, skip corrupt
+  lines).
 - `src/adapters/terminal-reporter.ts` — the `Reporter` port on
   `@effect/platform` `Terminal`: pretty format via `renderPretty`, json format
   via the Schema-encoded `LatestProjection`.
@@ -282,6 +299,10 @@ added, edited, renamed, or deleted.**
 - `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
   via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
   `GitError` ("not a git repository", CLI misuse).
+- `src/cli/config-path.ts` — the shared config-anchoring helpers used by
+  `prepare` and `veto stats`: `defaultVetoDir` (`<repoRoot>/.veto` when it
+  exists, else `ConfigError`) and `baseDirOf` (directory target → itself,
+  file target → its parent).
 - `src/cli/prepare.ts` — `prepare`: `CliArgs` + repo root → the engine's
   `RunReviewInput` plus the runs dir; resolves targets (positional +
   `--config`, none → `<repoRoot>/.veto` when that directory exists,
@@ -304,9 +325,15 @@ added, edited, renamed, or deleted.**
   return exit 0 when all decode and 2 otherwise.
 - `src/cli/schema-command.ts` — `printSchema`: the `veto schema` subcommand
   body printing `configJsonSchemaText` to the terminal.
+- `src/cli/stats-command.ts` — `runStats`: the `veto stats` shell — resolve
+  the repo root, anchor the runs dir next to the configs (positional/
+  `--config` target or the `.veto/` default; mirrors `prepare`'s convention
+  without running a review), read the retained history through `RunStore`,
+  fold with `foldRuleStats`, and print the table (or the Schema-encoded
+  `RuleStatsReport` for `--format json`).
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
   prepare → `runReview` → exit with the run's code) with the `init`,
-  `schema`, and `check` subcommands wired in, plus exit-code mapping
+  `schema`, `check`, and `stats` subcommands wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -338,6 +365,13 @@ added, edited, renamed, or deleted.**
   statistics (model, turns, input/output and cache creation/read tokens,
   cost, duration — nullable when the backend does not report them — plus
   tool-call and denial counters).
+- `src/domain/stored-event.ts` — `StoredEvent`: a replayed `ReviewEvent`
+  tagged with the head and reviewer it was logged under (the run-history
+  read shape).
+- `src/domain/rule-stats.ts` — `SeverityCounts`, `RuleStats` (per-rule
+  fired/suppressed counts, severity histogram, last-seen head), and the
+  `RuleStatsReport` schema (`veto stats --format json` shape, incl. the
+  prune window).
 - `src/domain/review-event.ts` — the ten tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,
@@ -374,6 +408,12 @@ added, edited, renamed, or deleted.**
   schema preserved.
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
   Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
+- `test/core/rule-stats.test.ts` — fold tests: empty history, per-rule
+  fire/severity counts and last head, suppression attribution (incl.
+  never-fired fingerprints), plain-string rule keys, sort order, unrelated
+  events ignored.
+- `test/core/rule-stats-format.test.ts` — render tests: aligned header and
+  rows, prune-window note, short-sha truncation, empty state.
 - `test/core/init-detect.test.ts` — stack-detection table: electron/next/react
   precedence, plain-library and missing/malformed-manifest fallbacks to node.
 - `test/core/init-hook.test.ts` — idempotent hook append: appends with and
@@ -420,7 +460,8 @@ added, edited, renamed, or deleted.**
   `unavailableAgent` failing with `AgentUnavailable`.
 - `test/adapters/in-memory-run-store.ts` — in-memory `RunStore` adapter over
   Maps keyed by `head/reviewer`, exposing its memory for assertions; prune
-  keeps the last N heads by insertion order.
+  keeps the last N heads by insertion order; readAllEvents replays the maps
+  in insertion order.
 - `test/adapters/collector-reporter.ts` — collector `Reporter` adapter
   recording every emitted projection + format in order.
 - `test/adapters/fixed-clock.ts` — fixed `ReviewClock` adapter returning one
@@ -432,7 +473,8 @@ added, edited, renamed, or deleted.**
   `AgentUnavailable` failure stream.
 - `test/adapters/in-memory-run-store.test.ts` — event append per key/attempt,
   baseline/record round-trips and null misses, key isolation, projection
-  collection, and head pruning.
+  collection, head pruning, and readAllEvents replay (tagged, ordered,
+  empty store).
 - `test/adapters/collector-reporter.test.ts` — ordered collection of emitted
   projections with formats.
 - `test/adapters/fixed-clock.test.ts` — the fixed instant is returned on every
@@ -447,7 +489,8 @@ added, edited, renamed, or deleted.**
   `GitError`s.
 - `test/adapters/fs-run-store.test.ts` — integration tests on a temp runs dir:
   self-gitignore creation, decodable JSONL event lines, baseline/record
-  round-trips (corrupt → null), projection files, mtime-based head pruning.
+  round-trips (corrupt → null), projection files, mtime-based head pruning,
+  and readAllEvents (oldest head first, corrupt lines skipped, missing dir).
 - `test/adapters/terminal-reporter.test.ts` — pretty and json emission
   captured through a fake `Terminal`.
 - `test/adapters/sdk-agent.test.ts` — the SDK adapter against an injected fake
@@ -486,7 +529,12 @@ added, edited, renamed, or deleted.**
   with an injected fake SDK query (zero credits): exit 0 clean / warnings,
   exit 1 on error findings, projections written, repeated `--config`, the
   bare `veto --staged` default to `.veto/`, exit 2 misuse (no repo, missing
-  config, no targets and no `.veto/`, invalid flag), `--help`.
+  config, no targets and no `.veto/`, invalid flag), the `stats`
+  subcommand exit 0, `--help`.
+- `test/cli/stats-command.test.ts` — `veto stats` on real temp repos with a
+  hand-written runs dir and a fake terminal: per-rule table (corrupt lines
+  skipped), empty state, decodable `--format json` report, `--config`
+  anchoring, and failures (no `.veto/`, not a repo).
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.
@@ -502,6 +550,8 @@ added, edited, renamed, or deleted.**
   fields.
 - `test/domain/reviewer-stats.test.ts` — decode tests for `ReviewerStats`
   (nullable usage, counter bounds).
+- `test/domain/rule-stats.test.ts` — decode tests for `RuleStats` and
+  `RuleStatsReport` (counts, plain-rule keys, prune window bounds).
 - `test/domain/review-event.test.ts` — decode tests for every `ReviewEvent`
   variant of the union.
 - `test/domain/errors.test.ts` — tests for the tagged error constructors and

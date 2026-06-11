@@ -13,7 +13,7 @@ import { Agent } from '../ports/agent.js'
 import { ReviewClock } from '../ports/clock.js'
 import { Git } from '../ports/git.js'
 import { Reporter, type ReportFormat } from '../ports/reporter.js'
-import { RunStore } from '../ports/run-store.js'
+import { retainedHeads, RunStore } from '../ports/run-store.js'
 import type { ReviewContext, RunReviewInput } from './inputs.js'
 import { runReviewer } from './run-reviewer.js'
 
@@ -22,8 +22,6 @@ type Publish = {
   readonly state: RunState
   readonly format: ReportFormat
 }
-
-const keepHeads = 10
 
 const reviewerConcurrency = 4
 
@@ -93,7 +91,7 @@ const publish = (
               markdown: renderMarkdown(projection)
             })
             .pipe(
-              Effect.zipRight(store.prune(keepHeads)),
+              Effect.zipRight(store.prune(retainedHeads)),
               Effect.zipRight(
                 reporter.emit({ projection, format: input.format })
               )
