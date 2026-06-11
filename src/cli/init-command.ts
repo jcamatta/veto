@@ -14,8 +14,8 @@ import {
   type ConfigError,
   type GitError
 } from '../domain/errors.js'
+import { configJsonSchemaText } from '../core/config-json-schema.js'
 import { resolveRepoRoot } from './repo-root.js'
-import { schemaText } from './schema-command.js'
 
 type InitEnv = {
   readonly fs: FileSystem.FileSystem
@@ -72,7 +72,9 @@ const writeStarter =
         Effect.zipRight(
           env.fs.writeFileString(file, renderStarterConfig(input.stack))
         ),
-        Effect.zipRight(env.fs.writeFileString(schemaFile, `${schemaText}\n`)),
+        Effect.zipRight(
+          env.fs.writeFileString(schemaFile, `${configJsonSchemaText}\n`)
+        ),
         Effect.orDie,
         Effect.zipRight(display(env)(`created ${file} (${input.stack} starter)`)),
         Effect.zipRight(display(env)(`created ${schemaFile} (editor validation)`))

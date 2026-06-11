@@ -133,8 +133,9 @@ added, edited, renamed, or deleted.**
   modeline pointing at `./schema.json`, cost-tuned defaults,
   bounded-reading prompt, stack-shaped placeholder rules); plus the
   `agentSnippet` CLAUDE.md feedback line.
-- `src/core/config-json-schema.ts` — `configJsonSchema`: the JSON Schema for
-  `ReviewerConfig` generated at module load via `JSONSchema.make`, consumed
+- `src/core/config-json-schema.ts` — `configJsonSchema` and
+  `configJsonSchemaText`: the JSON Schema for `ReviewerConfig` generated at
+  module load via `JSONSchema.make` (plus its stable JSON text), consumed
   by `veto schema` and written to `.veto/schema.json` by `veto init`.
 - `src/core/yaml-file.ts` — `isYamlFile`: the shared `.yaml`/`.yml` filename
   predicate used by config discovery and `veto init`'s clobber check.
@@ -296,9 +297,8 @@ added, edited, renamed, or deleted.**
   / `.veto/` default, via `discoverConfigs`, without touching `prepare`),
   decode each YAML file via the config loader, print per-file ok/error,
   return exit 0 when all decode and 2 otherwise.
-- `src/cli/schema-command.ts` — `schemaText` (the JSON-stringified
-  `configJsonSchema`) and `printSchema`: the `veto schema` subcommand body
-  printing the schema to the terminal.
+- `src/cli/schema-command.ts` — `printSchema`: the `veto schema` subcommand
+  body printing `configJsonSchemaText` to the terminal.
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
   prepare → `runReview` → exit with the run's code) with the `init`,
   `schema`, and `check` subcommands wired in, plus exit-code mapping
@@ -467,7 +467,7 @@ added, edited, renamed, or deleted.**
   per-file ok lines and exit 0 on valid dirs, error line and exit 2 on a
   malformed config, `.veto/` default, repeated `--config`, exit 2 on
   missing targets and missing `.veto/`.
-- `test/cli/schema-command.test.ts` — `schemaText` round-trips to
+- `test/cli/schema-command.test.ts` — `configJsonSchemaText` round-trips to
   `configJsonSchema`; `veto schema` prints the schema to a fake terminal
   and exits 0.
 - `test/cli/repo-root.test.ts` — toplevel resolution from the repo root and

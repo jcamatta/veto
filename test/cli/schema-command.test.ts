@@ -6,8 +6,10 @@ import { Effect, Layer, Ref } from 'effect'
 import { Terminal } from '@effect/platform'
 import { NodeContext } from '@effect/platform-node'
 import { makeCli, type CliExitCode } from '../../src/cli/command.js'
-import { configJsonSchema } from '../../src/core/config-json-schema.js'
-import { schemaText } from '../../src/cli/schema-command.js'
+import {
+  configJsonSchema,
+  configJsonSchemaText
+} from '../../src/core/config-json-schema.js'
 
 type FakeTerminal = {
   readonly outputs: Effect.Effect<readonly string[]>
@@ -57,7 +59,7 @@ const runSchema = async (): Promise<{
 
 describe('veto schema', () => {
   it('renders the reviewer config schema as stable JSON text', () => {
-    expect(JSON.parse(schemaText)).toEqual(configJsonSchema)
+    expect(JSON.parse(configJsonSchemaText)).toEqual(configJsonSchema)
   })
 
   it('prints the JSON schema and exits 0', async () => {
