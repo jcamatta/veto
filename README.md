@@ -19,27 +19,66 @@ environments without a logged-in `claude` need an `ANTHROPIC_API_KEY`.
 ## Install
 
 ```bash
-npm i -D github:jcamatta/veto        # per repo, like eslint
+npm i -D @jcamatta/veto        # per repo, like eslint
 ```
 
-veto is not on npm; it installs straight from the GitHub repo (`dist/` is
-built during install). Pin a tag or commit for reproducible installs:
-`npm i -D github:jcamatta/veto#<tag|commit>`.
+The package name is scoped (`@jcamatta/veto`), but the binary it installs is
+`veto` — so every command below is just `veto ...` (or `npx veto ...`).
 
-Requires Node >= 20 and a git repository.
+Requires **Node >= 20** and a **git repository**.
 
-Then scaffold the repo in one step:
+> **Scope.** veto wires itself into a [husky](https://typicode.github.io/husky/)
+> pre-commit hook, so today the install-and-init experience targets
+> **JavaScript / TypeScript projects** (npm + husky). The review engine itself
+> is language-agnostic — it reviews whatever is in the staged git diff — but the
+> turnkey setup assumes a Node/husky repo.
+
+## How it's meant to be used
+
+veto is a **pre-commit gate**. The intended setup is three steps, run once per
+repo:
 
 ```bash
-npx veto init        # detect the stack, write a starter .veto/architect.yaml, wire husky
+# 1. install
+npm i -D @jcamatta/veto
+
+# 2. scaffold config + wire the pre-commit hook
+npx veto init
+
+# 3. commit as usual — every commit is now reviewed
+git commit -m "feat: ..."
 ```
 
-`veto init` detects your stack from `package.json` (electron / next / react /
-plain Node), writes a commented starter config with cost-tuned defaults and
-example rules to replace, appends `npx veto .veto/ --staged` to
-`.husky/pre-commit` when one exists (idempotently), and prints the
-agent-feedback snippet for your CLAUDE.md. It refuses to overwrite existing
+`veto init` does the wiring for you: it detects your stack from `package.json`
+(electron / next / react / plain Node), writes a commented starter
+`.veto/architect.yaml` with cost-tuned defaults and example rules to replace,
+and **appends the review line to `.husky/pre-commit`** (idempotently) so commits
+are gated from then on:
+
+```bash
+git rev-parse -q --verify MERGE_HEAD >/dev/null || npx veto .veto/ --staged
+```
+
+It only appends to an **existing** `.husky/pre-commit`; if you don't have husky
+set up yet, init prints the exact line to add. It refuses to overwrite existing
 configs and never calls the model.
+
+From there the loop is automatic: you `git commit`, veto reviews the staged
+diff, and the commit is **blocked only on `error`-severity findings**. Fix the
+findings (or [suppress](#escape-hatches) a false positive) and commit again — or
+`git commit --no-verify` to bypass in an emergency. The engine **fails open**:
+if the model is unreachable, times out, or returns garbage twice, the commit
+proceeds with a warning rather than blocking your work.
+
+## Commands
+
+| Command | What it does |
+|---------|--------------|
+| `veto [.veto/]` | **Run a review** of the staged diff against the configs (defaults to `<repo-root>/.veto/`). This is the command the pre-commit hook runs. |
+| `veto init` | **Scaffold** `.veto/` for this repo: starter config, JSON Schema, and husky pre-commit wiring. |
+| `veto check` | **Validate** reviewer configs without running a review — no git diff, no agent, no credits. CI-friendly. |
+| `veto schema` | **Print** the reviewer-config JSON Schema to stdout (for editor integration). |
+| `veto stats` | **Report** per-rule health (fired / suppressed / severities) from the retained run history. |
 
 ## Usage
 
