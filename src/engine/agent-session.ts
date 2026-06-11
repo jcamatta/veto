@@ -2,7 +2,7 @@ import { Chunk, Effect, Stream } from 'effect'
 import {
   resultText,
   structuredOutput,
-  structuredRetriesExhausted
+  terminalFailureMessage
 } from '../core/agent-output.js'
 import { parseFindings, structuredFindings } from '../core/findings-parse.js'
 import { appendParseRetry } from '../core/prompt.js'
@@ -104,20 +104,16 @@ const rawMessages = (events: Chunk.Chunk<ReviewEvent>): readonly unknown[] =>
 const parseSession = (chunk: Chunk.Chunk<ReviewEvent>): ParsedSession => {
   const raws = rawMessages(chunk)
   const structured = structuredOutput(raws)
-  const exhausted = structuredRetriesExhausted(raws)
-  const result = exhausted
-    ? err(
-        findingsParseError(
-          'structured output failed validation after model retries'
-        )
-      )
+  const terminal = terminalFailureMessage(raws)
+  const result = terminal !== null
+    ? err(findingsParseError(terminal))
     : structured === undefined
       ? parseFindings(resultText(raws))
       : structuredFindings(structured)
   return {
     result,
     events: Chunk.toReadonlyArray(chunk),
-    structured: exhausted || structured !== undefined
+    structured: terminal !== null || structured !== undefined
   }
 }
 

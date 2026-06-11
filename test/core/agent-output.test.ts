@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   resultText,
   structuredOutput,
-  structuredRetriesExhausted
+  terminalFailureMessage
 } from '../../src/core/agent-output.js'
 
 describe('resultText', () => {
@@ -55,18 +55,23 @@ describe('structuredOutput', () => {
   })
 })
 
-describe('structuredRetriesExhausted', () => {
-  it('detects the error_max_structured_output_retries subtype', () => {
+describe('terminalFailureMessage', () => {
+  it('reports the cost ceiling on the error_max_budget_usd subtype', () => {
+    const raws = [{ type: 'result', subtype: 'error_max_budget_usd' }]
+    expect(terminalFailureMessage(raws)).toContain('cost ceiling')
+  })
+
+  it('reports retry exhaustion on the error_max_structured_output_retries subtype', () => {
     const raws = [
       { type: 'result', subtype: 'error_max_structured_output_retries' }
     ]
-    expect(structuredRetriesExhausted(raws)).toBe(true)
+    expect(terminalFailureMessage(raws)).toContain('structured output')
   })
 
-  it('is false for successful or absent result messages', () => {
+  it('is null for successful or absent result messages', () => {
     expect(
-      structuredRetriesExhausted([{ type: 'result', subtype: 'success' }])
-    ).toBe(false)
-    expect(structuredRetriesExhausted([])).toBe(false)
+      terminalFailureMessage([{ type: 'result', subtype: 'success' }])
+    ).toBeNull()
+    expect(terminalFailureMessage([])).toBeNull()
   })
 })

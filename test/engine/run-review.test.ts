@@ -657,6 +657,26 @@ describe('runReview — structured outputs', () => {
     )
   })
 
+  it('fails open without a second session when the cost ceiling is hit', async () => {
+    const scripted = scriptedAgent([
+      {
+        _tag: 'Say',
+        raw: {
+          type: 'result',
+          subtype: 'error_max_budget_usd',
+          is_error: true
+        }
+      }
+    ])
+    const { code, emitted } = await execute({ agent: scripted.layer })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(1)
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
+    expect(emitted[0]?.projection.reviewers[0]?.failure).toContain(
+      'cost ceiling'
+    )
+  })
+
   it('fails open without a retry when structured output misses the schema', async () => {
     const scripted = scriptedAgent([
       {
