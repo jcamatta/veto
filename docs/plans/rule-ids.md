@@ -43,8 +43,7 @@ rules:
    ids.
 3. Output schema: per-reviewer enum on `rule` built from the config.
 4. Fingerprint: use id when the finding's rule matches one.
-5. Docs: SPEC §3 (config), §5 (prompt), §9 (schema); README example;
-   FILES.md.
+5. Docs: SPEC §3 (config), §5 (prompt), §9 (schema); README example.
 6. Tests: config decode (both shapes, duplicate-id rejection), prompt
    rendering, fingerprint stability under text rewording, schema enum.
 7. Migrate `.veto/architect.yaml` (and pluma's) to identified rules.

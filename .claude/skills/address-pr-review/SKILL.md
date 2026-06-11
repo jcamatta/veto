@@ -36,7 +36,7 @@ Do not be agreeable by default: a wrong observation gets a respectful, technical
 
 ## 3. Apply the fixes
 
-All repo rules still apply — small Conventional Commits, lint/test/coverage hooks, `docs/FILES.md` updated in the same change as any file add/edit/rename/delete, no lint suppressions (restructure instead).
+All repo rules still apply — small Conventional Commits, lint/test/coverage hooks, no lint suppressions (restructure instead).
 
 - Group fixes into logical commits (one concern per commit, within the size budget). Use `fix:`/`refactor:`/`test:`/`docs:` as appropriate.
 - If pre-commit is blocked by the veto reviewer, read `.veto/runs/latest.json`, fix the findings, and commit again.

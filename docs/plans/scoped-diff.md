@@ -38,7 +38,7 @@ cache survives out-of-scope edits. This changes existing cache keys once
 2. Engine: `runReviewer` computes the scoped diff once; `ReviewerRun` carries
    it; `dispatch` hashes it; `liveSession` prompts with it.
 3. Docs: SPEC §5 (Layer-1 cache key = scoped diff + config), §7 (Job 1
-   wording); FILES.md.
+   wording).
 4. Tests: segment parsing (multi-file, renames, no-trailing-newline,
    preamble), filtering against paths/ignore, engine test that the prompt
    excludes out-of-scope hunks and that an out-of-scope edit replays from

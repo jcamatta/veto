@@ -63,9 +63,3 @@ The phased implementation plan is in [docs/PLAN.md](docs/PLAN.md).
 - Test coverage > 80% (vitest + @effect/vitest).
 - Type coverage > 95% (`type-coverage`).
 - Husky pre-commit runs lint, typecheck, tests, and both coverage gates.
-
-## Documentation discipline
-
-- [docs/FILES.md](docs/FILES.md) explains what every file in the repo is
-  about. **Every time a file is added, edited, renamed, or deleted, update
-  docs/FILES.md in the same change.** This is mandatory, not optional.

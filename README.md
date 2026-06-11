@@ -248,6 +248,5 @@ npm run check      # lint + typecheck + tests with coverage + type coverage
 npm run build      # tsup → dist/cli.js
 ```
 
-See [docs/SPEC.md](docs/SPEC.md) for the full specification,
-[docs/PLAN.md](docs/PLAN.md) for the implementation plan, and
-[docs/FILES.md](docs/FILES.md) for what every file is about.
+See [docs/SPEC.md](docs/SPEC.md) for the full specification and
+[docs/PLAN.md](docs/PLAN.md) for the implementation plan.
