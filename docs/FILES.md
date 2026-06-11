@@ -304,6 +304,9 @@ added, edited, renamed, or deleted.**
 - `src/domain/finding.ts` — `Severity`, the branded `Fingerprint`, the
   model-output `ModelFinding`/`ModelFindings` (no fingerprint), and the
   wrapper-fingerprinted `Finding`.
+- `src/domain/fail-on.ts` — `FailOn` literal schema
+  (`error|warning|info|never`): the exit-code severity threshold, plus the
+  `defaultFailOn` (`error`) constant.
 - `src/domain/run-key.ts` — `RunKey` schema (HEAD sha, branch, reviewer) and the
   `emptyRepoSentinel` head constant for repos without a HEAD.
 - `src/domain/baseline.ts` — `Baseline` schema: findings carried between
@@ -462,6 +465,8 @@ added, edited, renamed, or deleted.**
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.
 - `test/domain/finding.test.ts` — decode tests for `Fingerprint`,
   `ModelFinding`, `ModelFindings`, and `Finding`.
+- `test/domain/fail-on.test.ts` — decode tests for `FailOn` and the `error`
+  default.
 - `test/domain/run-key.test.ts` — decode tests for `RunKey` and the empty-repo
   sentinel.
 - `test/domain/baseline.test.ts` — decode tests for `Baseline`.
