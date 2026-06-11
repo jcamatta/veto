@@ -247,6 +247,38 @@ describe('runReview — scope skip (acceptance 2)', () => {
     expect(events.map((e) => e._tag)).toEqual(['ReviewerSkipped'])
   })
 
+  it('skips a reviewer whose rules are all disabled or out of scope', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    const parked: ReviewerSource = {
+      ...architect,
+      config: {
+        ...architect.config,
+        rules: [
+          { id: 'parked', instruction: 'parked rule', enabled: false },
+          {
+            id: 'docs-only',
+            instruction: 'docs rule',
+            paths: ['docs/**'] as const
+          }
+        ]
+      }
+    }
+    const { code, emitted, memory } = await execute({
+      agent: scripted.layer,
+      reviewers: [parked]
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]).toMatchObject({
+      name: 'architect',
+      status: 'skipped'
+    })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(0)
+    const events = memory.events.get('abc123/architect/attempt-1') ?? []
+    expect(events).toMatchObject([
+      { _tag: 'ReviewerSkipped', reason: 'no-active-rules' }
+    ])
+  })
+
   it('runs matching reviewers and skips the rest', async () => {
     const scripted = scriptedAgent([sayResult([warningFinding])])
     const { emitted } = await execute({

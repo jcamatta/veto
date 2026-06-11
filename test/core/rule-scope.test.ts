@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ruleAppliesTo } from '../../src/core/rule-scope.js'
+import { activeRules, ruleAppliesTo } from '../../src/core/rule-scope.js'
 
 const scoped = {
   id: 'tenant-id',
@@ -41,5 +41,21 @@ describe('ruleAppliesTo', () => {
   it('matches dotfiles like the reviewer-level scope does', () => {
     const rule = { id: 'a', instruction: 'x', paths: ['.config/**'] as const }
     expect(ruleAppliesTo({ rule, file: '.config/a.yaml' })).toBe(true)
+  })
+})
+
+describe('activeRules', () => {
+  it('keeps enabled rules that apply to at least one file', () => {
+    const rules = [scoped, 'plain rule'] as const
+    const files = ['src/modules/a.ts', 'docs/b.md']
+    expect(activeRules({ rules: [...rules], files })).toEqual([...rules])
+  })
+
+  it('drops disabled rules and rules with no in-scope file', () => {
+    const parked = { id: 'parked', instruction: 'x', enabled: false }
+    const files = ['docs/b.md']
+    expect(
+      activeRules({ rules: [scoped, parked, 'plain rule'], files })
+    ).toEqual(['plain rule'])
   })
 })

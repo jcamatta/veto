@@ -4,6 +4,7 @@ import {
   type ReviewerRule
 } from '../domain/reviewer-config.js'
 import { StagedDiff } from '../domain/staged-diff.js'
+import { activeRules } from './rule-scope.js'
 
 type PromptInput = {
   readonly config: ReviewerConfig
@@ -32,8 +33,11 @@ const jsonInstruction = [
 const ruleLine = (rule: ReviewerRule): string =>
   typeof rule === 'string' ? `- ${rule}` : `- [${rule.id}] ${rule.instruction}`
 
-const rulesSection = (config: ReviewerConfig): string =>
-  ['## Rules', ...config.rules.map(ruleLine)].join('\n')
+const rulesSection = ({ config, diff }: PromptInput): string =>
+  [
+    '## Rules',
+    ...activeRules({ rules: config.rules, files: diff.files }).map(ruleLine)
+  ].join('\n')
 
 const filesSection = (diff: StagedDiff): string =>
   ['## Staged files in your scope', ...diff.files.map((f) => `- ${f}`)].join(
@@ -72,12 +76,12 @@ type ReviewPrompt = {
   readonly user: string
 }
 
-const buildPrompt = ({ config, diff, baseline }: PromptInput): ReviewPrompt => ({
-  system: [config.systemPrompt, rulesSection(config)].join('\n\n'),
+const buildPrompt = (input: PromptInput): ReviewPrompt => ({
+  system: [input.config.systemPrompt, rulesSection(input)].join('\n\n'),
   user: [
-    filesSection(diff),
-    diffSection(diff),
-    baselineSection(baseline),
+    filesSection(input.diff),
+    diffSection(input.diff),
+    baselineSection(input.baseline),
     jsonInstruction
   ]
     .filter((section): section is string => section !== null)

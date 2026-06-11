@@ -126,7 +126,10 @@ added, edited, renamed, or deleted.**
 - `src/core/rule-scope.ts` — `ruleAppliesTo`: rule × file → boolean via the
   rule's optional `paths`/`ignore` globs through `buildFileMatcher`
   (intersection with the reviewer scope: per-rule globs can only narrow,
-  never escape); plain and glob-less rules apply to every file.
+  never escape); plain and glob-less rules apply to every file;
+  `activeRules` keeps the enabled rules that apply to at least one
+  in-scope file — the set the prompt renders and the findings schema
+  enumerates.
 - `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
@@ -255,8 +258,9 @@ added, edited, renamed, or deleted.**
   emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
   the new baseline and run record.
 - `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: diff scoped to
-  the reviewer's globs once (skip when nothing survives; prompt and Layer-1
-  diff hash both use the scoped diff) → replay check (record hash
+  the reviewer's globs once (skip when nothing survives, or when no rule is
+  enabled and in scope; prompt, findings schema, and Layer-1
+  diff hash all use the scoped diff) → replay check (record hash
   comparison) → live agent
   session with injected tool policy and per-reviewer knobs (model/effort/
   maxTurns from the config, config timeout overriding the run timeout), and

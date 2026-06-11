@@ -11,7 +11,7 @@ const RunStarted = Schema.TaggedStruct('RunStarted', {
 
 const ReviewerSkipped = Schema.TaggedStruct('ReviewerSkipped', {
   reviewer: Schema.NonEmptyTrimmedString,
-  reason: Schema.Literal('no-matching-paths')
+  reason: Schema.Literal('no-matching-paths', 'no-active-rules')
 })
 
 const ReplayServed = Schema.TaggedStruct('ReplayServed', {

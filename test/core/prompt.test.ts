@@ -66,6 +66,28 @@ describe('buildPrompt', () => {
     expect(prompt.system).toContain('- plain rule')
   })
 
+  it('omits disabled and out-of-scope rules from the system text', () => {
+    const prompt = buildPrompt({
+      config: {
+        ...config,
+        rules: [
+          { id: 'parked', instruction: 'parked rule', enabled: false },
+          {
+            id: 'docs-only',
+            instruction: 'docs rule',
+            paths: ['docs/**'] as const
+          },
+          'plain rule'
+        ]
+      },
+      diff,
+      baseline: null
+    })
+    expect(prompt.system).not.toContain('parked rule')
+    expect(prompt.system).not.toContain('docs rule')
+    expect(prompt.system).toContain('- plain rule')
+  })
+
   it('always ends the user text with the strict JSON instruction', () => {
     const prompt = buildPrompt({ config, diff, baseline: null })
     expect(prompt.user).toContain('{"findings": []}')
