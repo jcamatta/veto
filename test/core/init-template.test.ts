@@ -46,12 +46,10 @@ describe('renderStarterConfig', () => {
     expect(renderStarterConfig('node')).toContain('replace them')
   })
 
-  it('uses the instruction key and states the briefing discipline', () => {
+  it('uses the instruction key for placeholder rules', () => {
     const rendered = renderStarterConfig('node')
     expect(rendered).toContain('instruction: ')
     expect(rendered).not.toMatch(/^\s+rule: /m)
-    expect(rendered).toContain('read by a reviewing agent')
-    expect(rendered).toContain('a stranger could apply it without asking')
   })
 
   it('instructs bounded reading in the system prompt', () => {

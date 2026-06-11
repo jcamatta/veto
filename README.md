@@ -96,17 +96,38 @@ systemPrompt: |
 rules:                        # natural-language judgment rules
   - keep domain logic out of UI components
   - id: no-cross-layer        # optional stable id (kebab-case, unique)
-    rule: no cross-layer imports
+    instruction: no cross-layer imports
+  - id: tenant-id-every-query
+    instruction: |            # long-form briefings are the intended style:
+      Every repository query must include the tenant id. State the rule,
+      its rationale, and the edge cases — the reviewing agent applies this
+      text literally to the diff and nothing else.
+    enabled: true             # optional — false parks the rule, id survives
+    paths: ["src/modules/**"] # optional — narrows within the reviewer scope
+    ignore: ["**/*.spec.ts"]  # optional — per-rule exclusions
   - new endpoints must not duplicate existing operations (search before flagging)
 ```
 
 Keep **judgment** rules only. If eslint can enforce it deterministically, it
 belongs in eslint, which runs first in the hook.
 
+Each `instruction` is the briefing handed to the reviewing agent: it sees
+your diff and that text, nothing else — write it so a stranger could apply
+it without asking. The legacy `rule:` key is still accepted and decoded
+into `instruction`.
+
 Give rules an `id` when you expect to reword them: findings cite the id
 (enforced by the structured-output schema), and suppression fingerprints
 hash the id — so editing the rule text never invalidates `.veto/ignore`
 entries or the findings baseline.
+
+The deterministic knobs stay with the author: `enabled: false` parks a
+rule without deleting it, and per-rule `paths`/`ignore` intersect with the
+reviewer scope (they can only narrow it, never escape it). A rule is
+rendered only when it applies to at least one in-scope staged file, the
+findings schema only accepts the rendered rules, and a finding citing a
+rule on a file outside that rule's scope is dropped with a visible
+`FindingOutOfScope` event.
 
 On a personal subscription, `model: claude-sonnet-4-6` with `effort: medium`
 is the recommended default — cheaper, faster, and far less likely to spend
