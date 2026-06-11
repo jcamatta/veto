@@ -146,8 +146,9 @@ added, edited, renamed, or deleted.**
   text (no change when already present).
 - `src/core/init-template.ts` — `renderStarterConfig`: detected stack → the
   commented starter `.veto/architect.yaml` text (cost-tuned defaults,
-  bounded-reading prompt, stack-shaped placeholder rules); plus the
-  `agentSnippet` CLAUDE.md feedback line.
+  bounded-reading prompt, stack-shaped placeholder rules using the
+  `instruction` key, with a comment stating the briefing discipline); plus
+  the `agentSnippet` CLAUDE.md feedback line.
 - `src/core/yaml-file.ts` — `isYamlFile`: the shared `.yaml`/`.yml` filename
   predicate used by config discovery and `veto init`'s clobber check.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
