@@ -51,6 +51,12 @@ describe('renderStarterConfig', () => {
     expect(renderStarterConfig('node')).toContain('replace them')
   })
 
+  it('uses the instruction key for placeholder rules', () => {
+    const rendered = renderStarterConfig('node')
+    expect(rendered).toContain('instruction: ')
+    expect(rendered).not.toMatch(/^\s+rule: /m)
+  })
+
   it('instructs bounded reading in the system prompt', () => {
     const decoded = decode(parse(renderStarterConfig('node')))
     if (Either.isLeft(decoded)) {

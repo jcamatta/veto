@@ -51,7 +51,8 @@ added, edited, renamed, or deleted.**
 - `.husky/check-commit-size.sh` — enforces the commit size budget on the
   staged diff: ≤ 300 weighted source lines, ≤ 15 source files, test changes
   required past 30 source lines (locks, generated output, docs, and .husky
-  itself excluded).
+  itself excluded; merge commits skipped — their changes were already
+  budgeted on their own branches).
 - `.claude/skills/finish-plan/SKILL.md` — the plan-closing skill: verify the
   plan is done and the checks are green, run `test-functionality` for proof,
   draft the PR body (plan conformance, risk flags, business rules, evidence),
@@ -98,8 +99,12 @@ added, edited, renamed, or deleted.**
 - `src/core/result.ts` — the local `Result<Ok, Err>` discriminated union with
   constructors (`ok`, `err`), guards (`isOk`, `isErr`), and `map`; used by pure
   code where Effect is overkill.
+- `src/core/glob-matcher.ts` — `buildFileMatcher`: optional `paths`/`ignore`
+  globs → file predicate (picomatch, dotfiles included; absent `paths`
+  matches everything, absent/empty `ignore` excludes nothing).
 - `src/core/glob-scope.ts` — `scopeFiles`: config `paths`/`ignore` globs ×
-  staged file list → in-scope files and the matched/skip decision (picomatch).
+  staged file list → in-scope files and the matched/skip decision (via
+  `buildFileMatcher`).
 - `src/core/diff-scope.ts` — `scopeDiff`: split the unified diff into
   per-file segments (`diff --git` headers) and keep only the reviewer's
   in-scope files, so each reviewer is shown — and its replay cache is keyed
@@ -118,14 +123,26 @@ added, edited, renamed, or deleted.**
 - `src/core/baseline-diff.ts` — `diffBaseline`: previous baseline × current
   findings → resolved fingerprints / persisting / fresh, matched by fingerprint.
 - `src/core/prompt.ts` — `buildPrompt`: the split `ReviewPrompt` — system
-  text (reviewer persona + rules; identified rules render as `[id] text` and
+  text (reviewer persona + the caller-filtered active rules; identified
+  rules render as `[id] text` and
   findings must cite the id) and user text (staged files + diff + optional
   baseline with Layer-2 instructions + strict-JSON output instruction);
   `appendParseRetry` appends the schema error to the user text for the one
   findings-decode retry.
 - `src/core/rules.ts` — `ruleKey` / `ruleText` / `ruleKeys`: project a
-  `ReviewerRule` (plain string or `{id, rule}`) onto the key findings cite
-  and the prose the prompt renders.
+  `ReviewerRule` (plain string or `{id, instruction}`) onto the key findings
+  cite and the prose the prompt renders; `ruleEnabled` / `enabledRules`
+  drop rules parked with `enabled: false`.
+- `src/core/rule-scope.ts` — `ruleAppliesTo`: rule × file → boolean via the
+  rule's optional `paths`/`ignore` globs through `buildFileMatcher`
+  (intersection with the reviewer scope: per-rule globs can only narrow,
+  never escape); plain and glob-less rules apply to every file;
+  `activeRules` keeps the enabled rules that apply to at least one
+  in-scope file — the set the prompt renders and the findings schema
+  enumerates.
+- `src/core/finding-scope.ts` — `partitionByRuleScope`: splits decoded
+  findings into those whose cited rule applies to their file and
+  out-of-scope citations (unknown rule keys count as out of scope).
 - `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
@@ -146,8 +163,9 @@ added, edited, renamed, or deleted.**
 - `src/core/init-template.ts` — `renderStarterConfig`: detected stack → the
   commented starter `.veto/architect.yaml` text (yaml-language-server
   modeline pointing at `./schema.json`, cost-tuned defaults,
-  bounded-reading prompt, stack-shaped placeholder rules); plus the
-  `agentSnippet` CLAUDE.md feedback line.
+  bounded-reading prompt, stack-shaped placeholder rules using the
+  `instruction` key, with a comment stating the briefing discipline); plus
+  the `agentSnippet` CLAUDE.md feedback line.
 - `src/core/config-json-schema.ts` — `configJsonSchema` and
   `configJsonSchemaText`: the JSON Schema for `ReviewerConfig` generated at
   module load via `JSONSchema.make` (plus its stable JSON text), consumed
@@ -273,12 +291,15 @@ added, edited, renamed, or deleted.**
   retry — the backend already validated), and the text-parse path keeps
   exactly one retry with the schema error appended.
 - `src/engine/reviewer-conclude.ts` — the successful-session tail:
-  fingerprint findings, filter suppressions, diff against the baseline,
-  emit `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
+  fingerprint findings, drop findings whose cited rule does not apply to
+  their file (`FindingOutOfScope`, visible not silent), filter
+  suppressions, diff against the baseline, emit
+  `FindingsDecoded`/`FindingSuppressed`/`BaselineResolved`, and persist
   the new baseline and run record.
 - `src/engine/run-reviewer.ts` — `runReviewer` per SPEC §10: diff scoped to
-  the reviewer's globs once (skip when nothing survives; prompt and Layer-1
-  diff hash both use the scoped diff) → replay check (record hash
+  the reviewer's globs once (skip when nothing survives, or when no rule is
+  enabled and in scope; prompt, findings schema, and Layer-1
+  diff hash all use the scoped diff) → replay check (record hash
   comparison) → live agent
   session with injected tool policy and per-reviewer knobs (model/effort/
   maxTurns from the config, config timeout overriding the run timeout), and
@@ -345,10 +366,12 @@ added, edited, renamed, or deleted.**
 
 - `src/domain/reviewer-config.ts` — `ReviewerConfig` schema for the per-reviewer
   YAML (name, `mode` seam, paths, ignore with empty default, systemPrompt,
-  rules as plain strings or `{id, rule}` with kebab-case ids unique per
-  config, plus optional backend knobs: opaque `model`, `effort` level,
-  `maxTurns`, `timeoutMs`); `runtime` mode is accepted by the schema,
-  rejected by the engine in v1.
+  rules as plain strings or `{id, instruction}` with kebab-case ids unique
+  per config — legacy `rule:` is renamed to `instruction` on decode — plus
+  optional per-rule knobs (`enabled`, narrowing `paths`/`ignore` globs) and
+  optional backend knobs: opaque `model`, `effort` level, `maxTurns`,
+  `timeoutMs`); `runtime` mode is accepted by the schema, rejected by the
+  engine in v1.
 - `src/domain/staged-diff.ts` — `StagedDiff` schema: full diff text plus the
   staged file list.
 - `src/domain/finding.ts` — `Severity`, the branded `Fingerprint`, the
@@ -379,7 +402,7 @@ added, edited, renamed, or deleted.**
   fired/suppressed counts, severity histogram, last-seen head), and the
   `RuleStatsReport` schema (`veto stats --format json` shape, incl. the
   prune window).
-- `src/domain/review-event.ts` — the ten tagged `ReviewEvent` variants and
+- `src/domain/review-event.ts` — the eleven tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,
   `AgentUnavailable`, `FindingsParseError`) with constructors, usable with
@@ -397,6 +420,8 @@ added, edited, renamed, or deleted.**
 - `test/core/diff-scope.test.ts` — diff segmentation and scoping: glob
   filtering, scoped file list, full-segment preservation, preamble and
   unparseable fail-safes, identity on fully in-scope diffs.
+- `test/core/glob-matcher.test.ts` — file-predicate building: match-all
+  default, paths restriction with dotfiles, ignore exclusion, empty ignore.
 - `test/core/glob-scope.test.ts` — scope matching, ignore globs, dotfiles, and
   the no-match skip decision.
 - `test/core/hashing.test.ts` — diff/config hash delegation and replay-key
@@ -409,7 +434,12 @@ added, edited, renamed, or deleted.**
 - `test/core/baseline-diff.test.ts` — resolved/persisting/fresh partitioning,
   no-baseline and clean-run cases.
 - `test/core/rules.test.ts` — rule-helper projections for plain and
-  identified rules (key, text, mixed-list keys).
+  identified rules (key, text, mixed-list keys, enabled filtering).
+- `test/core/rule-scope.test.ts` — per-rule glob applicability: plain and
+  glob-less rules apply everywhere, `paths` restricts, `ignore` excludes,
+  dotfiles match; `activeRules` filtering by enabled flag and file overlap.
+- `test/core/finding-scope.test.ts` — finding partitioning by cited-rule
+  scope: applicable vs out-of-scope files, unknown rule keys, plain rules.
 - `test/core/findings-schema.test.ts` — rule-enum injection into the
   findings schema for identified, plain, and mixed rules; rest of the
   schema preserved.
