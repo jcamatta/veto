@@ -56,6 +56,10 @@ added, edited, renamed, or deleted.**
   plan is done and the checks are green, draft the PR description from the
   plan, remove the plan doc, push the branch, and open the GitHub PR for the
   user's review.
+- `.claude/skills/address-pr-review/SKILL.md` — the review-worker skill: run
+  by the agent that made the change, it collects the observations on the
+  branch's open PR, fixes the valid ones in small commits, replies on the PR
+  with reasoning for the invalid ones, and pushes.
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, effects at the edges, no
   duplication, behavior-focused tests) over `src`/`test`; documentation is
