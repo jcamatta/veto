@@ -138,9 +138,10 @@ describe('ReviewerConfig', () => {
     expect(Either.isRight(result)).toBe(true)
     if (Either.isRight(result)) {
       const rule = result.right.rules[0]
-      expect(typeof rule === 'object' && rule.instruction).toContain(
-        'tenant id'
-      )
+      expect(typeof rule).toBe('object')
+      if (typeof rule === 'object') {
+        expect(rule.instruction).toContain('tenant id')
+      }
     }
   })
 

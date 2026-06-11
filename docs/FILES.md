@@ -90,8 +90,10 @@ added, edited, renamed, or deleted.**
 - `src/core/result.ts` — the local `Result<Ok, Err>` discriminated union with
   constructors (`ok`, `err`), guards (`isOk`, `isErr`), and `map`; used by pure
   code where Effect is overkill.
-- `src/core/glob-scope.ts` — `scopeFiles`: config `paths`/`ignore` globs ×
-  staged file list → in-scope files and the matched/skip decision (picomatch).
+- `src/core/glob-scope.ts` — `buildFileMatcher`: optional `paths`/`ignore`
+  globs → file predicate (picomatch, dotfiles included; absent `paths`
+  matches everything); `scopeFiles`: config globs × staged file list →
+  in-scope files and the matched/skip decision.
 - `src/core/diff-scope.ts` — `scopeDiff`: split the unified diff into
   per-file segments (`diff --git` headers) and keep only the reviewer's
   in-scope files, so each reviewer is shown — and its replay cache is keyed
@@ -117,7 +119,12 @@ added, edited, renamed, or deleted.**
   findings-decode retry.
 - `src/core/rules.ts` — `ruleKey` / `ruleText` / `ruleKeys`: project a
   `ReviewerRule` (plain string or `{id, instruction}`) onto the key findings
-  cite and the prose the prompt renders.
+  cite and the prose the prompt renders; `ruleEnabled` / `enabledRules`
+  drop rules parked with `enabled: false`.
+- `src/core/rule-scope.ts` — `ruleAppliesTo`: rule × file → boolean via the
+  rule's optional `paths`/`ignore` globs through `buildFileMatcher`
+  (intersection with the reviewer scope: per-rule globs can only narrow,
+  never escape); plain and glob-less rules apply to every file.
 - `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
@@ -351,7 +358,10 @@ added, edited, renamed, or deleted.**
 - `test/core/baseline-diff.test.ts` — resolved/persisting/fresh partitioning,
   no-baseline and clean-run cases.
 - `test/core/rules.test.ts` — rule-helper projections for plain and
-  identified rules (key, text, mixed-list keys).
+  identified rules (key, text, mixed-list keys, enabled filtering).
+- `test/core/rule-scope.test.ts` — per-rule glob applicability: plain and
+  glob-less rules apply everywhere, `paths` restricts, `ignore` excludes,
+  dotfiles match.
 - `test/core/findings-schema.test.ts` — rule-enum injection into the
   findings schema for identified, plain, and mixed rules; rest of the
   schema preserved.

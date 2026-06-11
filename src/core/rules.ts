@@ -9,4 +9,11 @@ const ruleText = (rule: ReviewerRule): string =>
 const ruleKeys = (rules: readonly ReviewerRule[]): readonly string[] =>
   rules.map(ruleKey)
 
-export { ruleKey, ruleText, ruleKeys }
+const ruleEnabled = (rule: ReviewerRule): boolean =>
+  typeof rule === 'string' || rule.enabled !== false
+
+const enabledRules = (
+  rules: readonly ReviewerRule[]
+): readonly ReviewerRule[] => rules.filter(ruleEnabled)
+
+export { ruleKey, ruleText, ruleKeys, ruleEnabled, enabledRules }
