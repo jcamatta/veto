@@ -92,8 +92,13 @@ never re-litigates them:
 ```bash
 # .husky/pre-commit
 npx eslint .
-npx veto .veto/ --staged
+git rev-parse -q --verify MERGE_HEAD >/dev/null || npx veto .veto/ --staged
 ```
+
+The `MERGE_HEAD` guard skips the review on merge commits: a merge's staged
+diff is everything the merged branch brings in — code already reviewed on
+its own branch — so re-reviewing it only burns credit. `veto init` writes
+this guarded line for you.
 
 ### Exit codes
 
