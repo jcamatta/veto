@@ -42,6 +42,11 @@ describe('renderStarterConfig', () => {
     ).toBe(true)
   })
 
+  it('starts with the yaml-language-server modeline for editor validation', () => {
+    const [firstLine] = renderStarterConfig('node').split('\n')
+    expect(firstLine).toBe('# yaml-language-server: $schema=./schema.json')
+  })
+
   it('tells the user the rules are placeholders to replace', () => {
     expect(renderStarterConfig('node')).toContain('replace them')
   })

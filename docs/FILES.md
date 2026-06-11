@@ -54,9 +54,14 @@ added, edited, renamed, or deleted.**
   itself excluded; merge commits skipped — their changes were already
   budgeted on their own branches).
 - `.claude/skills/finish-plan/SKILL.md` — the plan-closing skill: verify the
-  plan is done and the checks are green, draft the PR description from the
-  plan, remove the plan doc, push the branch, and open the GitHub PR for the
+  plan is done and the checks are green, run `test-functionality` for proof,
+  draft the PR body (plan conformance, risk flags, business rules, evidence),
+  remove the plan doc, push the branch, and open the GitHub PR for the
   user's review.
+- `.claude/skills/test-functionality/SKILL.md` — the evidence skill: exercise
+  the branch's change for real (built CLI against a fixture repo, or
+  Playwright for a UI) and return a "Proof it works" report with real
+  transcripts and a PASS/FAIL verdict. Called by `finish-plan` before any PR.
 - `.veto/architect.yaml` — the dogfood reviewer config for this repo:
   judgment rules (one file one responsibility, effects at the edges, no
   duplication, behavior-focused tests) over `src`/`test`; documentation is
@@ -81,6 +86,9 @@ added, edited, renamed, or deleted.**
   stability under rule rewording, schema-enforced rule citation, per-rule
   bench analytics (a manual `version:` field was rejected — `configHash`
   already does that job).
+- `docs/plans/rule-stats.md` — `veto stats`: per-rule health aggregated from
+  the retained run-history event logs (fired / suppressed / severity
+  histogram / last seen), the evidence base for tuning or parking rules.
 - `docs/plans/scoped-diff.md` — per-reviewer diff scoping: each reviewer is
   shown only its in-scope hunks, and the replay cache is keyed on the scoped
   diff (trust, cost, cache stability).
@@ -139,6 +147,13 @@ added, edited, renamed, or deleted.**
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
   rule citations instead of trusting the model to echo them.
+- `src/core/rule-stats.ts` — `foldRuleStats`: fold `StoredEvent` history
+  (oldest first) into per-rule `RuleStats` aggregates — fires and severity
+  histogram from `FindingsDecoded`, suppressions attributed via the
+  fingerprint → rule map, last-seen head; sorted by fired desc then rule.
+- `src/core/rule-stats-format.ts` — `renderRuleStats`: `RuleStats`
+  aggregates → the aligned `veto stats` table text (one line per rule,
+  short last-seen sha, prune-window note, friendly empty state).
 - `src/core/init-detect.ts` — `detectStack`: `package.json` text → the repo's
   stack (`electron` > `next` > `react` > `node`), falling back to `node` on a
   missing or malformed manifest.
@@ -146,10 +161,15 @@ added, edited, renamed, or deleted.**
   `appendHookLine`: idempotent append of the hook line to a pre-commit file's
   text (no change when already present).
 - `src/core/init-template.ts` — `renderStarterConfig`: detected stack → the
-  commented starter `.veto/architect.yaml` text (cost-tuned defaults,
+  commented starter `.veto/architect.yaml` text (yaml-language-server
+  modeline pointing at `./schema.json`, cost-tuned defaults,
   bounded-reading prompt, stack-shaped placeholder rules using the
   `instruction` key, with a comment stating the briefing discipline); plus
   the `agentSnippet` CLAUDE.md feedback line.
+- `src/core/config-json-schema.ts` — `configJsonSchema` and
+  `configJsonSchemaText`: the JSON Schema for `ReviewerConfig` generated at
+  module load via `JSONSchema.make` (plus its stable JSON text), consumed
+  by `veto schema` and written to `.veto/schema.json` by `veto init`.
 - `src/core/yaml-file.ts` — `isYamlFile`: the shared `.yaml`/`.yml` filename
   predicate used by config discovery and `veto init`'s clobber check.
 - `src/core/path-normalize.ts` — pure path helpers for the policy function:
@@ -161,11 +181,13 @@ added, edited, renamed, or deleted.**
 - `src/core/reducer.ts` — `RunState`, `initialState`, and the curried event
   reducer `reduce(state)(event)` folding the `ReviewEvent` union into
   per-reviewer outcomes, key/attempt/hashes, and the blocking flag.
-- `src/core/exit-code.ts` — `isBlocking` (any error-severity finding) and the
-  severity → exit code mapping (`0`/`1`; `2` is CLI misuse, mapped elsewhere).
+- `src/core/exit-code.ts` — `blocksAt(threshold)` (any finding at or above
+  the `FailOn` threshold; `never` blocks nothing), `isBlocking`
+  (= `blocksAt('error')`), and the blocking → exit code mapping (`0`/`1`;
+  `2` is CLI misuse, mapped elsewhere).
 - `src/core/projection.ts` — `buildProjection`: `RunState` + timestamp + git
-  head/branch → `LatestProjection` (the `latest.json` shape), blocking derived
-  from findings.
+  head/branch + `failOn` threshold → `LatestProjection` (the `latest.json`
+  shape), blocking derived from findings via the threshold.
 - `src/core/agent-output.ts` — pull the final result out of the raw agent
   message stream: `resultText` (last `{ type: 'result', result }`),
   `structuredOutput` (the last result message's validated
@@ -203,8 +225,10 @@ added, edited, renamed, or deleted.**
   `AgentService.run` returning a `Stream` failing with `AgentUnavailable`;
   the `Agent` Context tag.
 - `src/ports/run-store.ts` — the `RunStore` port: appendEvent (per key +
-  attempt), baseline/record read-write, writeProjections (projection +
-  rendered markdown), and prune (keep last N heads); the `RunStore` tag.
+  attempt), readAllEvents (the whole retained history as `StoredEvent`s,
+  oldest head first), baseline/record read-write, writeProjections
+  (projection + rendered markdown), and prune (keep last N heads); the
+  shared `retainedHeads` prune-window constant and the `RunStore` tag.
 - `src/ports/reporter.ts` — the `Reporter` port: `ReportFormat`
   (`pretty`/`json`) and `emit(projection, format)`; the `Reporter` tag.
 - `src/ports/clock.ts` — the `ReviewClock` port (named to avoid clashing with
@@ -226,6 +250,11 @@ added, edited, renamed, or deleted.**
   key/attempt, Schema-encoded baseline/record/latest read-write (corrupt or
   missing reads → null), prune to the most recent N HEAD dirs by mtime; store
   write failures die (not part of fail-open).
+- `src/adapters/fs-run-store-read.ts` — the run-history read side shared by
+  the fs store: head-dir listing with mtime ordering (also used by prune)
+  and `readAllEvents` (walk head/reviewer dirs, attempt files in attempt
+  order, decode JSONL lines via the `ReviewEvent` schema, skip corrupt
+  lines).
 - `src/adapters/terminal-reporter.ts` — the `Reporter` port on
   `@effect/platform` `Terminal`: pretty format via `renderPretty`, json format
   via the Schema-encoded `LatestProjection`.
@@ -242,13 +271,15 @@ added, edited, renamed, or deleted.**
 - `src/adapters/config-loader.ts` — YAML config discovery (file or directory
   of `*.yaml`/`*.yml`, sorted) → parse → `Schema.decodeUnknown(ReviewerConfig)`;
   returns config + raw source text (the Layer-1 config-hash input); all
-  failures are `ConfigError`.
+  failures are `ConfigError`; `discoverConfigs` exposes the discovery step
+  alone so `veto check` can report per-file results.
 
 ## src/engine/ — pipeline orchestration (the engine, SPEC §10 & §12)
 
 - `src/engine/inputs.ts` — the engine's input contract: `ReviewerSource`
   (config + raw YAML source), `RunSettings` (hash, repo root, suppressions,
-  no-cache, strict scope, timeout), `ReviewContext` (settings + staged diff +
+  no-cache, strict scope, timeout, fail-on threshold), `ReviewContext`
+  (settings + staged diff +
   head/branch), `RunReviewInput`, and the 90 s `defaultTimeoutMs`.
 - `src/engine/reviewer-run.ts` — the per-reviewer run value (`ReviewerRun`:
   context, key, attempt, baseline, hashes), `appendEvents` (the event-log
@@ -287,11 +318,16 @@ added, edited, renamed, or deleted.**
   `NodeContext` platform layer, run via `NodeRuntime.runMain`.
 - `src/cli/options.ts` — the `@effect/cli` surface: positional config
   dir/file, repeatable `--config`, `--staged`, `--format=pretty|json`
-  (default pretty), `--no-cache`, `--timeout` (seconds), with help
+  (default pretty), `--no-cache`, `--timeout` (seconds),
+  `--fail-on=error|warning|info|never` (default error), with help
   descriptions; the decoded `CliArgs` type.
 - `src/cli/repo-root.ts` — `resolveRepoRoot`: `git rev-parse --show-toplevel`
   via `@effect/platform` `Command` (optional cwd for tests); non-zero exit →
   `GitError` ("not a git repository", CLI misuse).
+- `src/cli/config-path.ts` — the shared config-anchoring helpers used by
+  `prepare` and `veto stats`: `defaultVetoDir` (`<repoRoot>/.veto` when it
+  exists, else `ConfigError`) and `baseDirOf` (directory target → itself,
+  file target → its parent).
 - `src/cli/prepare.ts` — `prepare`: `CliArgs` + repo root → the engine's
   `RunReviewInput` plus the runs dir; resolves targets (positional +
   `--config`, none → `<repoRoot>/.veto` when that directory exists,
@@ -304,11 +340,25 @@ added, edited, renamed, or deleted.**
   tests spend zero credits.
 - `src/cli/init-command.ts` — `runInit`: the `veto init` shell — resolve the
   repo root, refuse when `.veto/` already has configs, detect the stack from
-  `package.json`, write the starter config, idempotently wire
+  `package.json`, write the starter config and `.veto/schema.json` (the
+  generated JSON Schema the starter's modeline points at), idempotently wire
   `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
+- `src/cli/check-command.ts` — `checkArgs` and `runCheck`: the `veto check`
+  subcommand body — resolve targets like a run does (positional / `--config`
+  / `.veto/` default, via `discoverConfigs`, without touching `prepare`),
+  decode each YAML file via the config loader, print per-file ok/error,
+  return exit 0 when all decode and 2 otherwise.
+- `src/cli/schema-command.ts` — `printSchema`: the `veto schema` subcommand
+  body printing `configJsonSchemaText` to the terminal.
+- `src/cli/stats-command.ts` — `runStats`: the `veto stats` shell — resolve
+  the repo root, anchor the runs dir next to the configs (positional/
+  `--config` target or the `.veto/` default; mirrors `prepare`'s convention
+  without running a review), read the retained history through `RunStore`,
+  fold with `foldRuleStats`, and print the table (or the Schema-encoded
+  `RuleStatsReport` for `--format json`).
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
-  prepare → `runReview` → exit with the run's code) with the `init`
-  subcommand wired in, plus exit-code mapping
+  prepare → `runReview` → exit with the run's code) with the `init`,
+  `schema`, `check`, and `stats` subcommands wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -327,6 +377,9 @@ added, edited, renamed, or deleted.**
 - `src/domain/finding.ts` — `Severity`, the branded `Fingerprint`, the
   model-output `ModelFinding`/`ModelFindings` (no fingerprint), and the
   wrapper-fingerprinted `Finding`.
+- `src/domain/fail-on.ts` — `FailOn` literal schema
+  (`error|warning|info|never`): the exit-code severity threshold, plus the
+  `defaultFailOn` (`error`) constant.
 - `src/domain/run-key.ts` — `RunKey` schema (HEAD sha, branch, reviewer) and the
   `emptyRepoSentinel` head constant for repos without a HEAD.
 - `src/domain/baseline.ts` — `Baseline` schema: findings carried between
@@ -342,6 +395,13 @@ added, edited, renamed, or deleted.**
   statistics (model, turns, input/output and cache creation/read tokens,
   cost, duration — nullable when the backend does not report them — plus
   tool-call and denial counters).
+- `src/domain/stored-event.ts` — `StoredEvent`: a replayed `ReviewEvent`
+  tagged with the head and reviewer it was logged under (the run-history
+  read shape).
+- `src/domain/rule-stats.ts` — `SeverityCounts`, `RuleStats` (per-rule
+  fired/suppressed counts, severity histogram, last-seen head), and the
+  `RuleStatsReport` schema (`veto stats --format json` shape, incl. the
+  prune window).
 - `src/domain/review-event.ts` — the eleven tagged `ReviewEvent` variants and
   their union (SPEC §10), the input to the event reducer.
 - `src/domain/errors.ts` — plain tagged errors (`GitError`, `ConfigError`,
@@ -385,14 +445,23 @@ added, edited, renamed, or deleted.**
   schema preserved.
 - `test/core/prompt.test.ts` — prompt section assembly, baseline injection with
   Layer-2 instructions, strict-JSON tail, and the parse-retry suffix.
+- `test/core/rule-stats.test.ts` — fold tests: empty history, per-rule
+  fire/severity counts and last head, suppression attribution (incl.
+  never-fired fingerprints), plain-string rule keys, sort order, unrelated
+  events ignored.
+- `test/core/rule-stats-format.test.ts` — render tests: aligned header and
+  rows, prune-window note, short-sha truncation, empty state.
 - `test/core/init-detect.test.ts` — stack-detection table: electron/next/react
   precedence, plain-library and missing/malformed-manifest fallbacks to node.
 - `test/core/init-hook.test.ts` — idempotent hook append: appends with and
   without a trailing newline, empty file, no-op when already wired.
 - `test/core/init-template.test.ts` — every stack's starter renders YAML that
-  decodes as `ReviewerConfig`, carries the cost-tuned defaults, shapes
-  paths/rules to the stack, and instructs bounded reading; the agent snippet
-  points at `latest.json`.
+  decodes as `ReviewerConfig`, opens with the yaml-language-server modeline,
+  carries the cost-tuned defaults, shapes paths/rules to the stack, and
+  instructs bounded reading; the agent snippet points at `latest.json`.
+- `test/core/config-json-schema.test.ts` — the generated JSON Schema has the
+  required reviewer fields, mode/effort enums, optional knobs, rejects
+  unknown keys, and never degrades to an unconstrained object.
 - `test/core/path-normalize.test.ts` — separator unification, dot collapsing,
   drive letters, absolute detection, root resolution.
 - `test/core/tool-policy.test.ts` — allowlist, repo-root containment,
@@ -400,8 +469,8 @@ added, edited, renamed, or deleted.**
   (acceptance criterion 8 surface).
 - `test/core/reducer.test.ts` — every event variant plus fast-check properties
   (no mutation of input state; AgentEvent noise never changes the outcome).
-- `test/core/exit-code.test.ts` — blocking detection per severity and exit-code
-  mapping.
+- `test/core/exit-code.test.ts` — blocking detection per severity at every
+  `fail-on` threshold (incl. `never`) and exit-code mapping.
 - `test/core/projection.test.ts` — projection from folded state plus git
   head/branch, derived blocking.
 - `test/core/agent-output.test.ts` — result-text extraction: last result
@@ -428,7 +497,8 @@ added, edited, renamed, or deleted.**
   `unavailableAgent` failing with `AgentUnavailable`.
 - `test/adapters/in-memory-run-store.ts` — in-memory `RunStore` adapter over
   Maps keyed by `head/reviewer`, exposing its memory for assertions; prune
-  keeps the last N heads by insertion order.
+  keeps the last N heads by insertion order; readAllEvents replays the maps
+  in insertion order.
 - `test/adapters/collector-reporter.ts` — collector `Reporter` adapter
   recording every emitted projection + format in order.
 - `test/adapters/fixed-clock.ts` — fixed `ReviewClock` adapter returning one
@@ -440,7 +510,8 @@ added, edited, renamed, or deleted.**
   `AgentUnavailable` failure stream.
 - `test/adapters/in-memory-run-store.test.ts` — event append per key/attempt,
   baseline/record round-trips and null misses, key isolation, projection
-  collection, and head pruning.
+  collection, head pruning, and readAllEvents replay (tagged, ordered,
+  empty store).
 - `test/adapters/collector-reporter.test.ts` — ordered collection of emitted
   projections with formats.
 - `test/adapters/fixed-clock.test.ts` — the fixed instant is returned on every
@@ -455,7 +526,8 @@ added, edited, renamed, or deleted.**
   `GitError`s.
 - `test/adapters/fs-run-store.test.ts` — integration tests on a temp runs dir:
   self-gitignore creation, decodable JSONL event lines, baseline/record
-  round-trips (corrupt → null), projection files, mtime-based head pruning.
+  round-trips (corrupt → null), projection files, mtime-based head pruning,
+  and readAllEvents (oldest head first, corrupt lines skipped, missing dir).
 - `test/adapters/terminal-reporter.test.ts` — pretty and json emission
   captured through a fake `Terminal`.
 - `test/adapters/sdk-agent.test.ts` — the SDK adapter against an injected fake
@@ -473,8 +545,16 @@ added, edited, renamed, or deleted.**
   tool-call denials incl. strict scope, and runtime-mode rejection
   (acceptance criteria 2–9).
 - `test/cli/init-command.test.ts` — end-to-end `veto init` in real temp git
-  repos: starter scaffolding, electron-shaped detection, hook append and
-  idempotent no-op, refusal on existing configs, exit 2 outside a repo.
+  repos: starter scaffolding, `schema.json` written next to it,
+  electron-shaped detection, hook append and idempotent no-op, refusal on
+  existing configs, exit 2 outside a repo.
+- `test/cli/check-command.test.ts` — `veto check` in real temp git repos:
+  per-file ok lines and exit 0 on valid dirs, error line and exit 2 on a
+  malformed config, `.veto/` default, repeated `--config`, exit 2 on
+  missing targets and missing `.veto/`.
+- `test/cli/schema-command.test.ts` — `configJsonSchemaText` round-trips to
+  `configJsonSchema`; `veto schema` prints the schema to a fake terminal
+  and exits 0.
 - `test/cli/repo-root.test.ts` — toplevel resolution from the repo root and
   a subdirectory of real throwaway repos, `GitError` outside a repo.
 - `test/cli/prepare.test.ts` — run-input assembly from a positional dir vs
@@ -486,12 +566,19 @@ added, edited, renamed, or deleted.**
   with an injected fake SDK query (zero credits): exit 0 clean / warnings,
   exit 1 on error findings, projections written, repeated `--config`, the
   bare `veto --staged` default to `.veto/`, exit 2 misuse (no repo, missing
-  config, no targets and no `.veto/`, invalid flag), `--help`.
+  config, no targets and no `.veto/`, invalid flag), the `stats`
+  subcommand exit 0, `--help`.
+- `test/cli/stats-command.test.ts` — `veto stats` on real temp repos with a
+  hand-written runs dir and a fake terminal: per-rule table (corrupt lines
+  skipped), empty state, decodable `--format json` report, `--config`
+  anchoring, and failures (no `.veto/`, not a repo).
 - `test/domain/reviewer-config.test.ts` — decode tests for `ReviewerConfig`,
   including YAML round-trips via the `yaml` package.
 - `test/domain/staged-diff.test.ts` — decode tests for `StagedDiff`.
 - `test/domain/finding.test.ts` — decode tests for `Fingerprint`,
   `ModelFinding`, `ModelFindings`, and `Finding`.
+- `test/domain/fail-on.test.ts` — decode tests for `FailOn` and the `error`
+  default.
 - `test/domain/run-key.test.ts` — decode tests for `RunKey` and the empty-repo
   sentinel.
 - `test/domain/baseline.test.ts` — decode tests for `Baseline`.
@@ -502,6 +589,8 @@ added, edited, renamed, or deleted.**
   fields.
 - `test/domain/reviewer-stats.test.ts` — decode tests for `ReviewerStats`
   (nullable usage, counter bounds).
+- `test/domain/rule-stats.test.ts` — decode tests for `RuleStats` and
+  `RuleStatsReport` (counts, plain-rule keys, prune window bounds).
 - `test/domain/review-event.test.ts` — decode tests for every `ReviewEvent`
   variant of the union.
 - `test/domain/errors.test.ts` — tests for the tagged error constructors and

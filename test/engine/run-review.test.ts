@@ -40,7 +40,8 @@ const baseSettings: RunSettings = {
   suppressions: { fingerprints: [] },
   noCache: false,
   strictScope: false,
-  timeoutMs: 5000
+  timeoutMs: 5000,
+  failOn: 'error'
 }
 
 const architect: ReviewerSource = {
@@ -227,6 +228,28 @@ describe('runReview — completed runs', () => {
     })
     expect(code).toBe(0)
     expect(emitted[0]?.projection.reviewers[0]?.status).toBe('unavailable')
+  })
+})
+
+describe('runReview — fail-on threshold', () => {
+  it('blocks on warnings with --fail-on warning', async () => {
+    const scripted = scriptedAgent([sayResult([warningFinding])])
+    const { code, emitted } = await execute({
+      agent: scripted.layer,
+      settings: { failOn: 'warning' }
+    })
+    expect(code).toBe(1)
+    expect(emitted[0]?.projection.blocking).toBe(true)
+  })
+
+  it('never blocks with --fail-on never, even on errors', async () => {
+    const scripted = scriptedAgent([sayResult([errorFinding])])
+    const { code, emitted } = await execute({
+      agent: scripted.layer,
+      settings: { failOn: 'never' }
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.blocking).toBe(false)
   })
 })
 

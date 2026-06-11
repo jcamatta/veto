@@ -36,6 +36,7 @@ const args = (overrides: Partial<CliArgs>): CliArgs => ({
   format: 'pretty',
   noCache: false,
   timeout: Option.none(),
+  failOn: 'error',
   ...overrides
 })
 
@@ -116,6 +117,14 @@ describe('prepare', () => {
     )
     expect(prepared.format).toBe('json')
     expect(prepared.settings.noCache).toBe(true)
+  })
+
+  it('carries the fail-on threshold into the run settings', async () => {
+    const dir = configDir()
+    const byDefault = await run(args({ dir: Option.some(dir) }))
+    expect(byDefault.settings.failOn).toBe('error')
+    const never = await run(args({ dir: Option.some(dir), failOn: 'never' }))
+    expect(never.settings.failOn).toBe('never')
   })
 
   it('parses the ignore file next to the configs into suppressions', async () => {

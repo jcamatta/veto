@@ -53,7 +53,36 @@ veto .veto/ --staged                          # staged diff (the default; flag d
 veto .veto/ --format=json                     # machine-readable output (default: pretty)
 veto .veto/ --no-cache                        # bypass the exact-replay cache
 veto .veto/ --timeout=240                     # per-reviewer timeout in seconds (default 90)
+veto .veto/ --fail-on=warning                 # block on warnings too (default error; never = report-only)
+veto check                                    # validate configs without running a review
+veto check .veto/ --config=extra.yaml         # same target rules as a run
+veto schema                                   # print the reviewer-config JSON Schema
+veto stats                                    # per-rule health from the retained run history
+veto stats --format=json                      # same, machine-readable
 ```
+
+### Validating configs
+
+`veto check` discovers configs exactly like a run does (positional targets,
+repeated `--config`, or the `.veto/` default), decodes each file, and prints
+a per-file `ok` / `error` line. It exits 0 when every config decodes and 2
+otherwise — no git diff, no agent, no credits. Use it in CI to keep every
+reviewer config valid.
+
+### Editor validation
+
+`veto init` writes the generated JSON Schema to `.veto/schema.json` and the
+starter config opens with a modeline:
+
+```yaml
+# yaml-language-server: $schema=./schema.json
+```
+
+With the VS Code YAML extension (or any `yaml-language-server` client) you
+get inline validation and autocompletion while editing reviewer configs.
+`veto schema` prints the same schema to stdout if you want to wire it up
+elsewhere. The schema covers structure; cross-field rules (like unique rule
+ids) are caught by `veto check`.
 
 ### Pre-commit (husky)
 
@@ -70,9 +99,14 @@ npx veto .veto/ --staged
 
 | Code | Meaning |
 |------|---------|
-| 0    | no findings, or only `warning`/`info`, or fail-open (agent unavailable, timeout, parse failure after retry) |
-| 1    | at least one `error`-severity finding — commit blocked |
+| 0    | no finding at or above the `--fail-on` threshold, or fail-open (agent unavailable, timeout, parse failure after retry) |
+| 1    | at least one finding at or above the `--fail-on` threshold — commit blocked |
 | 2    | engine misuse (bad config, not a git repo, bad flags) |
+
+`--fail-on` sets the lowest severity that blocks (`info < warning < error`);
+the default `error` keeps the behavior above. `--fail-on=never` makes the run
+report-only: findings are still written to `latest.json`, but findings never
+fail the run (exit 2 misuse paths are unaffected).
 
 ## Reviewer config
 
@@ -147,6 +181,24 @@ it expires automatically when the commit finally lands:
   findings and must say what is resolved, report genuinely new problems,
   and **not** raise fresh objections to previously-accepted unchanged code
   (no whack-a-mole).
+
+## Tuning rules with `veto stats`
+
+Judgment rules have empirical precision: the only way to know a rule is
+noisy or dead is to measure it. `veto stats` folds the retained run history
+(the last 10 heads — older runs are pruned) into a per-rule health table:
+
+```
+rule              fired  suppressed  error  warning  info  last seen
+no-cross-layer       12           5      8        4     0  a94f3c2
+keep-domain-pure      1           0      0        1     0  77b01ce
+```
+
+The tuning loop: a rule that fires constantly and gets mostly suppressed is
+noisy — sharpen its wording or delete it; a rule that never fires may be
+dead weight. `--format json` emits the same data machine-readable. The runs
+dir is anchored the same way as a review (next to the configs; `.veto/` by
+default).
 
 ## Escape hatches
 
