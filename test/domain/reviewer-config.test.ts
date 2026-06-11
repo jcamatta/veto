@@ -56,6 +56,20 @@ describe('ReviewerConfig', () => {
     expect(Either.isLeft(result)).toBe(true)
   })
 
+  it('decodes the optional diff budget knobs', () => {
+    const result = decode({ ...valid, maxDiffLines: 3000, maxDiffFiles: 50 })
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.maxDiffLines).toBe(3000)
+      expect(result.right.maxDiffFiles).toBe(50)
+    }
+  })
+
+  it('rejects a non-positive diff budget', () => {
+    expect(Either.isLeft(decode({ ...valid, maxDiffLines: 0 }))).toBe(true)
+    expect(Either.isLeft(decode({ ...valid, maxDiffFiles: -1 }))).toBe(true)
+  })
+
   it('decodes identified rules and mixed shapes', () => {
     const result = decode({
       ...valid,

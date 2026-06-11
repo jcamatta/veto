@@ -1,9 +1,7 @@
 import { DateTime, Duration, Effect } from 'effect'
-import { scopeDiff } from '../core/diff-scope.js'
 import { findingsSchemaFor } from '../core/findings-schema.js'
 import { configHash, diffHash } from '../core/hashing.js'
 import { buildPrompt } from '../core/prompt.js'
-import { activeRules } from '../core/rule-scope.js'
 import type { ReviewerRule } from '../domain/reviewer-config.js'
 import { filterSuppressed } from '../core/suppression.js'
 import { evaluateToolCall, type PolicyDecision } from '../core/tool-policy.js'
@@ -24,6 +22,7 @@ import { ReviewClock } from '../ports/clock.js'
 import { RunStore } from '../ports/run-store.js'
 import { runSession } from './agent-session.js'
 import type { ReviewContext, ReviewerSource } from './inputs.js'
+import { gateReviewer, type SkipReason } from './reviewer-gate.js'
 import { conclude, fingerprinted } from './reviewer-conclude.js'
 import {
   appendEvents,
@@ -74,7 +73,7 @@ const policyFor =
 
 type Skip = {
   readonly key: RunKey
-  readonly reason: 'no-matching-paths' | 'no-active-rules'
+  readonly reason: SkipReason
 }
 
 const skipped = ({
@@ -239,16 +238,9 @@ const runReviewer =
       branch: ctx.branch,
       reviewer: reviewer.config.name
     }
-    const diff = scopeDiff({ config: reviewer.config, diff: ctx.diff })
-    if (diff.files.length === 0) {
-      return skipped({ key, reason: 'no-matching-paths' })
-    }
-    const active = activeRules({
-      rules: reviewer.config.rules,
-      files: diff.files
-    })
-    if (active.length === 0) {
-      return skipped({ key, reason: 'no-active-rules' })
+    const gate = gateReviewer({ reviewer, diff: ctx.diff })
+    if (gate._tag === 'Skip') {
+      return skipped({ key, reason: gate.reason })
     }
     return RunStore.pipe(
       Effect.flatMap((store) =>
@@ -258,7 +250,15 @@ const runReviewer =
         })
       ),
       Effect.flatMap(({ record, baseline }) =>
-        dispatch({ ctx, reviewer, key, record, baseline, diff, rules: active })
+        dispatch({
+          ctx,
+          reviewer,
+          key,
+          record,
+          baseline,
+          diff: gate.diff,
+          rules: gate.rules
+        })
       )
     )
   }

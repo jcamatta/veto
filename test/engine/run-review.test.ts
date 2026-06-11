@@ -270,6 +270,29 @@ describe('runReview — scope skip (acceptance 2)', () => {
     expect(events.map((e) => e._tag)).toEqual(['ReviewerSkipped'])
   })
 
+  it('skips a reviewer whose scoped diff exceeds the diff budget', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    const small: ReviewerSource = {
+      config: { ...architect.config, maxDiffLines: 1 },
+      source: 'architect-config-v1'
+    }
+    const { code, emitted, memory } = await execute({
+      agent: scripted.layer,
+      reviewers: [small]
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]).toMatchObject({
+      name: 'architect',
+      status: 'skipped',
+      skipReason: 'diff-too-large'
+    })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(0)
+    const events = memory.events.get('abc123/architect/attempt-1') ?? []
+    expect(events).toMatchObject([
+      { _tag: 'ReviewerSkipped', reason: 'diff-too-large' }
+    ])
+  })
+
   it('skips a reviewer whose rules are all disabled or out of scope', async () => {
     const scripted = scriptedAgent([sayResult([])])
     const parked: ReviewerSource = {
