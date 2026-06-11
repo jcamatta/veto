@@ -130,8 +130,10 @@ added, edited, renamed, or deleted.**
   never escape); plain and glob-less rules apply to every file;
   `activeRules` keeps the enabled rules that apply to at least one
   in-scope file — the set the prompt renders and the findings schema
-  enumerates; `partitionByRuleScope` splits decoded findings into those
-  whose cited rule applies to their file and out-of-scope citations.
+  enumerates.
+- `src/core/finding-scope.ts` — `partitionByRuleScope`: splits decoded
+  findings into those whose cited rule applies to their file and
+  out-of-scope citations (unknown rule keys count as out of scope).
 - `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
@@ -373,7 +375,9 @@ added, edited, renamed, or deleted.**
   identified rules (key, text, mixed-list keys, enabled filtering).
 - `test/core/rule-scope.test.ts` — per-rule glob applicability: plain and
   glob-less rules apply everywhere, `paths` restricts, `ignore` excludes,
-  dotfiles match.
+  dotfiles match; `activeRules` filtering by enabled flag and file overlap.
+- `test/core/finding-scope.test.ts` — finding partitioning by cited-rule
+  scope: applicable vs out-of-scope files, unknown rule keys, plain rules.
 - `test/core/findings-schema.test.ts` — rule-enum injection into the
   findings schema for identified, plain, and mixed rules; rest of the
   schema preserved.

@@ -1,7 +1,7 @@
 import { DateTime, Effect } from 'effect'
 import { diffBaseline } from '../core/baseline-diff.js'
 import { fingerprintFinding } from '../core/fingerprint.js'
-import { partitionByRuleScope } from '../core/rule-scope.js'
+import { partitionByRuleScope } from '../core/finding-scope.js'
 import { filterSuppressed } from '../core/suppression.js'
 import type { Finding, ModelFindings } from '../domain/finding.js'
 import {
