@@ -227,7 +227,8 @@ added, edited, renamed, or deleted.**
 - `src/adapters/config-loader.ts` — YAML config discovery (file or directory
   of `*.yaml`/`*.yml`, sorted) → parse → `Schema.decodeUnknown(ReviewerConfig)`;
   returns config + raw source text (the Layer-1 config-hash input); all
-  failures are `ConfigError`.
+  failures are `ConfigError`; `discoverConfigs` exposes the discovery step
+  alone so `veto check` can report per-file results.
 
 ## src/engine/ — pipeline orchestration (the engine, SPEC §10 & §12)
 
@@ -288,12 +289,17 @@ added, edited, renamed, or deleted.**
   repo root, refuse when `.veto/` already has configs, detect the stack from
   `package.json`, write the starter config, idempotently wire
   `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
+- `src/cli/check-command.ts` — `checkArgs` and `runCheck`: the `veto check`
+  subcommand body — resolve targets like a run does (positional / `--config`
+  / `.veto/` default, via `discoverConfigs`, without touching `prepare`),
+  decode each YAML file via the config loader, print per-file ok/error,
+  return exit 0 when all decode and 2 otherwise.
 - `src/cli/schema-command.ts` — `schemaText` (the JSON-stringified
   `configJsonSchema`) and `printSchema`: the `veto schema` subcommand body
   printing the schema to the terminal.
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
-  prepare → `runReview` → exit with the run's code) with the `init` and
-  `schema` subcommands wired in, plus exit-code mapping
+  prepare → `runReview` → exit with the run's code) with the `init`,
+  `schema`, and `check` subcommands wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -454,6 +460,10 @@ added, edited, renamed, or deleted.**
 - `test/cli/init-command.test.ts` — end-to-end `veto init` in real temp git
   repos: starter scaffolding, electron-shaped detection, hook append and
   idempotent no-op, refusal on existing configs, exit 2 outside a repo.
+- `test/cli/check-command.test.ts` — `veto check` in real temp git repos:
+  per-file ok lines and exit 0 on valid dirs, error line and exit 2 on a
+  malformed config, `.veto/` default, repeated `--config`, exit 2 on
+  missing targets and missing `.veto/`.
 - `test/cli/schema-command.test.ts` — `schemaText` round-trips to
   `configJsonSchema`; `veto schema` prints the schema to a fake terminal
   and exits 0.
