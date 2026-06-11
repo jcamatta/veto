@@ -40,7 +40,8 @@ const baseSettings: RunSettings = {
   suppressions: { fingerprints: [] },
   noCache: false,
   strictScope: false,
-  timeoutMs: 5000
+  timeoutMs: 5000,
+  failOn: 'error'
 }
 
 const architect: ReviewerSource = {
@@ -230,6 +231,28 @@ describe('runReview — completed runs', () => {
   })
 })
 
+describe('runReview — fail-on threshold', () => {
+  it('blocks on warnings with --fail-on warning', async () => {
+    const scripted = scriptedAgent([sayResult([warningFinding])])
+    const { code, emitted } = await execute({
+      agent: scripted.layer,
+      settings: { failOn: 'warning' }
+    })
+    expect(code).toBe(1)
+    expect(emitted[0]?.projection.blocking).toBe(true)
+  })
+
+  it('never blocks with --fail-on never, even on errors', async () => {
+    const scripted = scriptedAgent([sayResult([errorFinding])])
+    const { code, emitted } = await execute({
+      agent: scripted.layer,
+      settings: { failOn: 'never' }
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.blocking).toBe(false)
+  })
+})
+
 describe('runReview — scope skip (acceptance 2)', () => {
   it('skips reviewers with no matching staged paths and never calls the agent', async () => {
     const scripted = scriptedAgent([sayResult([])])
@@ -245,6 +268,89 @@ describe('runReview — scope skip (acceptance 2)', () => {
     expect(await Effect.runPromise(scripted.calls)).toHaveLength(0)
     const events = memory.events.get('abc123/docs/attempt-1') ?? []
     expect(events.map((e) => e._tag)).toEqual(['ReviewerSkipped'])
+  })
+
+  it('skips a reviewer whose rules are all disabled or out of scope', async () => {
+    const scripted = scriptedAgent([sayResult([])])
+    const parked: ReviewerSource = {
+      ...architect,
+      config: {
+        ...architect.config,
+        rules: [
+          { id: 'parked', instruction: 'parked rule', enabled: false },
+          {
+            id: 'docs-only',
+            instruction: 'docs rule',
+            paths: ['docs/**'] as const
+          }
+        ]
+      }
+    }
+    const { code, emitted, memory } = await execute({
+      agent: scripted.layer,
+      reviewers: [parked]
+    })
+    expect(code).toBe(0)
+    expect(emitted[0]?.projection.reviewers[0]).toMatchObject({
+      name: 'architect',
+      status: 'skipped'
+    })
+    expect(await Effect.runPromise(scripted.calls)).toHaveLength(0)
+    const events = memory.events.get('abc123/architect/attempt-1') ?? []
+    expect(events).toMatchObject([
+      { _tag: 'ReviewerSkipped', reason: 'no-active-rules' }
+    ])
+  })
+
+  it('drops findings that cite a rule on a file outside its scope', async () => {
+    const twoFileRepo: FixtureRepo = {
+      ...repo,
+      diff: {
+        diffText:
+          '+++ b/src/a.ts\n+const x = 1\n+++ b/src/modules/b.ts\n+const y = 2',
+        files: ['src/a.ts', 'src/modules/b.ts']
+      }
+    }
+    const scopedReviewer: ReviewerSource = {
+      ...architect,
+      config: {
+        ...architect.config,
+        rules: [
+          {
+            id: 'tenant-id',
+            instruction: 'every query carries the tenant id',
+            paths: ['src/modules/**'] as const
+          }
+        ]
+      }
+    }
+    const offTarget: ModelFinding = {
+      severity: 'error',
+      file: 'src/a.ts',
+      line: 1,
+      rule: 'tenant-id',
+      message: 'cited outside the rule scope'
+    }
+    const onTarget: ModelFinding = {
+      severity: 'error',
+      file: 'src/modules/b.ts',
+      line: 1,
+      rule: 'tenant-id',
+      message: 'cited inside the rule scope'
+    }
+    const scripted = scriptedAgent([sayResult([offTarget, onTarget])])
+    const { code, emitted, memory } = await execute({
+      agent: scripted.layer,
+      git: fixtureGit(twoFileRepo),
+      reviewers: [scopedReviewer]
+    })
+    expect(code).toBe(1)
+    const findings = emitted[0]?.projection.reviewers[0]?.findings ?? []
+    expect(findings.map((f) => f.file)).toEqual(['src/modules/b.ts'])
+    const events = memory.events.get('abc123/architect/attempt-1') ?? []
+    expect(events.filter((e) => e._tag === 'FindingOutOfScope')).toMatchObject([
+      { rule: 'tenant-id' }
+    ])
   })
 
   it('runs matching reviewers and skips the rest', async () => {

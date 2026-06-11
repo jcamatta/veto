@@ -127,6 +127,41 @@ describe('fsRunStore', () => {
     expect(readFileSync(join(dir, 'latest.md'), 'utf8')).toBe('# review\n')
   })
 
+  it('reads all events oldest head first, skipping corrupt lines', async () => {
+    const replay = ReplayServed.make({ reviewer: 'architect' })
+    const completed = RunCompleted.make({ blocking: false })
+    const newKey: RunKey = { ...key, head: 'bbb222' }
+    const events = await withStore((store, runsDir) =>
+      Effect.all([
+        store.appendEvent({ key, attempt: 1, event: replay }),
+        store.appendEvent({ key, attempt: 2, event: completed }),
+        store.appendEvent({ key: newKey, attempt: 1, event: completed })
+      ]).pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            writeFileSync(
+              join(runsDir, 'aaa111', 'architect', 'attempt-1.events.jsonl'),
+              `${JSON.stringify({ _tag: 'ReplayServed', reviewer: 'architect' })}\nnot json\n{"_tag":"Nope"}\n`
+            )
+            utimesSync(join(runsDir, 'aaa111'), 1, 1)
+            utimesSync(join(runsDir, 'bbb222'), 1000, 1000)
+          })
+        ),
+        Effect.andThen(store.readAllEvents)
+      )
+    )
+    expect(events).toEqual([
+      { head: 'aaa111', reviewer: 'architect', event: replay },
+      { head: 'aaa111', reviewer: 'architect', event: completed },
+      { head: 'bbb222', reviewer: 'architect', event: completed }
+    ])
+  })
+
+  it('reads no events from a missing runs dir', async () => {
+    const events = await withStore((store) => store.readAllEvents)
+    expect(events).toEqual([])
+  })
+
   it('prunes everything but the most recent N head dirs', async () => {
     const heads = ['h1', 'h2', 'h3']
     const dir = await withStore((store, runsDir) =>

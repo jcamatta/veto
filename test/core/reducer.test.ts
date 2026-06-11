@@ -6,6 +6,7 @@ import { Finding, Fingerprint } from '../../src/domain/finding.js'
 import {
   AgentEvent,
   BaselineResolved,
+  FindingOutOfScope,
   FindingSuppressed,
   FindingsDecoded,
   ReplayServed,
@@ -74,6 +75,20 @@ describe('reduce', () => {
     const state = fold([
       FindingsDecoded.make({ reviewer: 'a', findings: [kept, dropped] }),
       FindingSuppressed.make({ reviewer: 'a', fingerprint: fp('bbbbbbbbbbbb') })
+    ])
+    expect(state.reviewers[0]?.findings).toEqual([kept])
+  })
+
+  it('FindingOutOfScope removes the matching finding', () => {
+    const kept = finding('aaaaaaaaaaaa')
+    const dropped = finding('bbbbbbbbbbbb')
+    const state = fold([
+      FindingsDecoded.make({ reviewer: 'a', findings: [kept, dropped] }),
+      FindingOutOfScope.make({
+        reviewer: 'a',
+        fingerprint: fp('bbbbbbbbbbbb'),
+        rule: 'r'
+      })
     ])
     expect(state.reviewers[0]?.findings).toEqual([kept])
   })

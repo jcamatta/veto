@@ -100,6 +100,28 @@ describe('makeInMemoryRunStore', () => {
     expect(memory.projections).toEqual([{ projection, markdown: '# review\n' }])
   })
 
+  it('reads back all stored events tagged with head and reviewer', async () => {
+    const replay = ReplayServed.make({ reviewer: 'architect' })
+    const completed = RunCompleted.make({ blocking: false })
+    const events = await withStore((s) =>
+      Effect.all([
+        s.appendEvent({ key, attempt: 1, event: replay }),
+        s.appendEvent({ key, attempt: 2, event: completed }),
+        s.appendEvent({ key: otherKey, attempt: 1, event: completed })
+      ]).pipe(Effect.andThen(s.readAllEvents))
+    )
+    expect(events).toEqual([
+      { head: 'aaa111', reviewer: 'architect', event: replay },
+      { head: 'aaa111', reviewer: 'architect', event: completed },
+      { head: 'bbb222', reviewer: 'architect', event: completed }
+    ])
+  })
+
+  it('reads back nothing from an empty store', async () => {
+    const events = await withStore((s) => s.readAllEvents)
+    expect(events).toEqual([])
+  })
+
   it('prunes everything but the last N heads', async () => {
     const store = makeInMemoryRunStore()
     const heads = ['h1', 'h2', 'h3']

@@ -3,6 +3,7 @@ import type { Baseline } from '../../src/domain/baseline.js'
 import type { ReviewEvent } from '../../src/domain/review-event.js'
 import type { RunKey } from '../../src/domain/run-key.js'
 import type { RunRecord } from '../../src/domain/run-record.js'
+import type { StoredEvent } from '../../src/domain/stored-event.js'
 import {
   RunStore,
   type RunStoreService,
@@ -67,6 +68,12 @@ const pruneMemory =
     }
   }
 
+const storedEventsOf = (memory: RunStoreMemory): readonly StoredEvent[] =>
+  [...memory.events.entries()].flatMap(([mapKey, events]) => {
+    const [head = '', reviewer = ''] = mapKey.split('/')
+    return events.map((event) => ({ head, reviewer, event }))
+  })
+
 const makeService = (ref: Ref.Ref<RunStoreMemory>): RunStoreService => ({
   appendEvent: (input) =>
     Ref.update(ref, (m) => {
@@ -74,6 +81,7 @@ const makeService = (ref: Ref.Ref<RunStoreMemory>): RunStoreService => ({
       const appended = [...(m.events.get(k) ?? []), input.event]
       return { ...m, events: setEntry(m.events, [k, appended]) }
     }),
+  readAllEvents: Ref.get(ref).pipe(Effect.map(storedEventsOf)),
   readBaseline: (key) =>
     Ref.get(ref).pipe(Effect.map((m) => m.baselines.get(keyPath(key)) ?? null)),
   writeBaseline: (input) =>

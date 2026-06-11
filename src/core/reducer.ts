@@ -106,6 +106,7 @@ const reduce =
       Match.tag('ToolCallDenied', (e) => touch(e.reviewer)(trackDenial)),
       Match.tag('FindingsDecoded', (e) => touch(e.reviewer)(setFindings(e.findings))),
       Match.tag('FindingSuppressed', (e) => touch(e.reviewer)(dropFinding(e.fingerprint))),
+      Match.tag('FindingOutOfScope', (e) => touch(e.reviewer)(dropFinding(e.fingerprint))),
       Match.tag('BaselineResolved', (e) => touch(e.reviewer)(setResolved(e.fingerprints))),
       Match.tag('ReviewerFailed', (e) => touch(e.reviewer)(failOpen(e.error))),
       Match.tag('RunCompleted', (e) => ({

@@ -17,7 +17,7 @@ const ruleEnumOf = (schema: Record<string, unknown>): unknown =>
 describe('findingsSchemaFor', () => {
   it('constrains the rule property to the config rule keys', () => {
     const schema = findingsSchemaFor([
-      { id: 'process-boundary', rule: 'no node apis in renderer' },
+      { id: 'process-boundary', instruction: 'no node apis in renderer' },
       'plain rule text'
     ])
     expect(ruleEnumOf(schema)).toEqual({

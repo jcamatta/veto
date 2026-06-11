@@ -1,10 +1,12 @@
 import { DateTime, Effect } from 'effect'
 import { diffBaseline } from '../core/baseline-diff.js'
 import { fingerprintFinding } from '../core/fingerprint.js'
+import { partitionByRuleScope } from '../core/finding-scope.js'
 import { filterSuppressed } from '../core/suppression.js'
 import type { Finding, ModelFindings } from '../domain/finding.js'
 import {
   BaselineResolved,
+  FindingOutOfScope,
   FindingsDecoded,
   FindingSuppressed,
   type ReviewEvent
@@ -80,8 +82,12 @@ const conclude = (
   input: Conclude
 ): Effect.Effect<readonly ReviewEvent[], never, RunStore | ReviewClock> => {
   const reviewer = input.run.key.reviewer
+  const { applicable, outOfScope } = partitionByRuleScope({
+    rules: input.run.rules,
+    findings: input.findings
+  })
   const { kept, suppressed } = filterSuppressed({
-    findings: input.findings,
+    findings: applicable,
     suppressions: input.run.ctx.settings.suppressions
   })
   const { resolved } = diffBaseline({
@@ -90,6 +96,13 @@ const conclude = (
   })
   const events: readonly ReviewEvent[] = [
     FindingsDecoded.make({ reviewer, findings: input.findings }),
+    ...outOfScope.map((finding) =>
+      FindingOutOfScope.make({
+        reviewer,
+        fingerprint: finding.fingerprint,
+        rule: finding.rule
+      })
+    ),
     ...suppressed.map((fingerprint) =>
       FindingSuppressed.make({ reviewer, fingerprint })
     ),
