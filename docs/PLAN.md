@@ -3,7 +3,7 @@
 Derived from [SPEC.md](SPEC.md). Work proceeds phase by phase: implement → user
 reviews → user approves → commit → next phase. **No commit without approval.**
 Every phase keeps the quality gates green: lint, typecheck, tests, test coverage
-> 80%, type coverage > 95%, and [FILES.md](FILES.md) updated.
+> 80%, type coverage > 95%.
 
 ---
 
@@ -173,7 +173,8 @@ under enforced rules.
 - `vitest.config.ts` with v8 coverage thresholds: lines/branches/functions/statements ≥ 80.
 - `type-coverage` config: `--at-least 95 --strict`.
 - Husky `pre-commit`: lint → typecheck → tests with coverage → type-coverage.
-- `docs/FILES.md` created, listing every file and its single responsibility.
+- `docs/FILES.md` created, listing every file and its single responsibility
+  (later removed — it conflicted constantly across parallel branches).
 - Smoke source file + test so every gate runs against real code.
 
 Exit criteria: `npm run check` green; pre-commit hook blocks on any gate failure.
@@ -268,7 +269,7 @@ Goal: v1 done per SPEC §14.
 - End-to-end dogfood: a `.veto/` config in this repo, hook line in
   `.husky/pre-commit` (after eslint), CLAUDE.md feedback-loop line.
 - README (install, usage, config format, escape hatches).
-- Coverage and type-coverage audits; final FILES.md sweep.
+- Coverage and type-coverage audits.
 
 ## Phase 9 — Observability, SDK upgrades & generalization (v1.1)
 
