@@ -30,7 +30,7 @@ const jsonInstruction = [
 ].join('\n')
 
 const ruleLine = (rule: ReviewerRule): string =>
-  typeof rule === 'string' ? `- ${rule}` : `- [${rule.id}] ${rule.rule}`
+  typeof rule === 'string' ? `- ${rule}` : `- [${rule.id}] ${rule.instruction}`
 
 const rulesSection = (config: ReviewerConfig): string =>
   ['## Rules', ...config.rules.map(ruleLine)].join('\n')

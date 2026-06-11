@@ -116,8 +116,8 @@ added, edited, renamed, or deleted.**
   `appendParseRetry` appends the schema error to the user text for the one
   findings-decode retry.
 - `src/core/rules.ts` — `ruleKey` / `ruleText` / `ruleKeys`: project a
-  `ReviewerRule` (plain string or `{id, rule}`) onto the key findings cite
-  and the prose the prompt renders.
+  `ReviewerRule` (plain string or `{id, instruction}`) onto the key findings
+  cite and the prose the prompt renders.
 - `src/core/findings-schema.ts` — `findingsSchemaFor`: the `ModelFindings`
   JSON schema with the `rule` property constrained to the reviewer's rule
   keys (ids, or literal texts for plain rules), so the backend validates
@@ -295,10 +295,12 @@ added, edited, renamed, or deleted.**
 
 - `src/domain/reviewer-config.ts` — `ReviewerConfig` schema for the per-reviewer
   YAML (name, `mode` seam, paths, ignore with empty default, systemPrompt,
-  rules as plain strings or `{id, rule}` with kebab-case ids unique per
-  config, plus optional backend knobs: opaque `model`, `effort` level,
-  `maxTurns`, `timeoutMs`); `runtime` mode is accepted by the schema,
-  rejected by the engine in v1.
+  rules as plain strings or `{id, instruction}` with kebab-case ids unique
+  per config — legacy `rule:` is renamed to `instruction` on decode — plus
+  optional per-rule knobs (`enabled`, narrowing `paths`/`ignore` globs) and
+  optional backend knobs: opaque `model`, `effort` level, `maxTurns`,
+  `timeoutMs`); `runtime` mode is accepted by the schema, rejected by the
+  engine in v1.
 - `src/domain/staged-diff.ts` — `StagedDiff` schema: full diff text plus the
   staged file list.
 - `src/domain/finding.ts` — `Severity`, the branded `Fingerprint`, the

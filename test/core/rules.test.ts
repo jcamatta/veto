@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { ruleKey, ruleKeys, ruleText } from '../../src/core/rules.js'
 
-const identified = { id: 'process-boundary', rule: 'no node apis in renderer' }
+const identified = {
+  id: 'process-boundary',
+  instruction: 'no node apis in renderer'
+}
 
 describe('rule helpers', () => {
   it('uses the id as the key for identified rules', () => {

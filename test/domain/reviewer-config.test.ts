@@ -60,7 +60,7 @@ describe('ReviewerConfig', () => {
     const result = decode({
       ...valid,
       rules: [
-        { id: 'no-cross-layer', rule: 'no cross-layer imports' },
+        { id: 'no-cross-layer', instruction: 'no cross-layer imports' },
         'plain string rules stay valid'
       ]
     })
@@ -68,8 +68,79 @@ describe('ReviewerConfig', () => {
     if (Either.isRight(result)) {
       expect(result.right.rules[0]).toEqual({
         id: 'no-cross-layer',
-        rule: 'no cross-layer imports'
+        instruction: 'no cross-layer imports'
       })
+    }
+  })
+
+  it('decodes the legacy rule key into instruction', () => {
+    const result = decode({
+      ...valid,
+      rules: [{ id: 'no-cross-layer', rule: 'no cross-layer imports' }]
+    })
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.rules[0]).toEqual({
+        id: 'no-cross-layer',
+        instruction: 'no cross-layer imports'
+      })
+    }
+  })
+
+  it('decodes enabled and per-rule scope knobs', () => {
+    const result = decode({
+      ...valid,
+      rules: [
+        {
+          id: 'tenant-id',
+          instruction: 'every query carries the tenant id',
+          enabled: false,
+          paths: ['src/modules/**'],
+          ignore: ['**/*.spec.ts']
+        }
+      ]
+    })
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      const rule = result.right.rules[0]
+      expect(rule).toMatchObject({
+        enabled: false,
+        paths: ['src/modules/**'],
+        ignore: ['**/*.spec.ts']
+      })
+    }
+  })
+
+  it('rejects a rule with empty per-rule paths', () => {
+    const result = decode({
+      ...valid,
+      rules: [{ id: 'a', instruction: 'x', paths: [] }]
+    })
+    expect(Either.isLeft(result)).toBe(true)
+  })
+
+  it('decodes instruction rules from YAML', () => {
+    const yaml = [
+      'name: architect',
+      'mode: static',
+      'paths:',
+      '  - "src/**/*.ts"',
+      'systemPrompt: persona',
+      'rules:',
+      '  - id: tenant-id',
+      '    instruction: |',
+      '      Every repository query must include the tenant id.',
+      '      Joins through a tenant-scoped table count.',
+      '    paths:',
+      '      - "src/modules/**"'
+    ].join('\n')
+    const result = decode(parse(yaml))
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      const rule = result.right.rules[0]
+      expect(typeof rule === 'object' && rule.instruction).toContain(
+        'tenant id'
+      )
     }
   })
 

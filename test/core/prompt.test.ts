@@ -55,7 +55,7 @@ describe('buildPrompt', () => {
       config: {
         ...config,
         rules: [
-          { id: 'no-cross-layer', rule: 'no cross-layer imports' },
+          { id: 'no-cross-layer', instruction: 'no cross-layer imports' },
           'plain rule'
         ]
       },

@@ -13,12 +13,30 @@ const RuleId = Schema.String.pipe(
   Schema.maxLength(64)
 )
 
-const IdentifiedRule = Schema.Struct({
+const RuleKnobs = {
+  enabled: Schema.optional(Schema.Boolean),
+  paths: Schema.optional(Schema.NonEmptyArray(Schema.NonEmptyTrimmedString)),
+  ignore: Schema.optional(Schema.Array(Schema.NonEmptyTrimmedString))
+}
+
+const InstructionRule = Schema.Struct({
   id: RuleId,
-  rule: Schema.NonEmptyString
+  instruction: Schema.NonEmptyString,
+  ...RuleKnobs
 })
 
-type IdentifiedRule = typeof IdentifiedRule.Type
+const LegacyRule = Schema.rename(
+  Schema.Struct({
+    id: RuleId,
+    rule: Schema.NonEmptyString,
+    ...RuleKnobs
+  }),
+  { rule: 'instruction' }
+)
+
+const IdentifiedRule = Schema.Union(InstructionRule, LegacyRule)
+
+type IdentifiedRule = typeof InstructionRule.Type
 
 const ReviewerRule = Schema.Union(Schema.NonEmptyString, IdentifiedRule)
 
