@@ -14,6 +14,7 @@ import { productionLayers } from './layers.js'
 import { cliOptions, type CliArgs } from './options.js'
 import { prepare } from './prepare.js'
 import { resolveRepoRoot } from './repo-root.js'
+import { printSchema } from './schema-command.js'
 
 type CliExitCode = 0 | 1 | 2
 
@@ -64,9 +65,14 @@ const initSubcommand = (deps: CliDeps) =>
     runInit(deps.cwd ?? null).pipe(Effect.flatMap(() => deps.exit(0)))
   )
 
+const schemaSubcommand = (deps: CliDeps) =>
+  Command.make('schema', {}, () =>
+    printSchema.pipe(Effect.flatMap(() => deps.exit(0)))
+  )
+
 const makeCli = (deps: CliDeps): Cli => {
   const command = Command.make('veto', cliOptions, handler(deps)).pipe(
-    Command.withSubcommands([initSubcommand(deps)])
+    Command.withSubcommands([initSubcommand(deps), schemaSubcommand(deps)])
   )
   const run = Command.run(command, { name: 'veto', version })
   return (argv) =>

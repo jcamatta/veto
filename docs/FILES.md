@@ -288,9 +288,12 @@ added, edited, renamed, or deleted.**
   repo root, refuse when `.veto/` already has configs, detect the stack from
   `package.json`, write the starter config, idempotently wire
   `.husky/pre-commit` (or print the line), and print the CLAUDE.md snippet.
+- `src/cli/schema-command.ts` — `schemaText` (the JSON-stringified
+  `configJsonSchema`) and `printSchema`: the `veto schema` subcommand body
+  printing the schema to the terminal.
 - `src/cli/command.ts` — `makeCli`: the `veto` command (resolve repo root →
-  prepare → `runReview` → exit with the run's code) with the `init`
-  subcommand wired in, plus exit-code mapping
+  prepare → `runReview` → exit with the run's code) with the `init` and
+  `schema` subcommands wired in, plus exit-code mapping
   per SPEC §3 (`ConfigError`/`GitError`/flag validation errors → exit 2)
   through an injected `exit` effect; `cwd`/`queryFn` injectable for tests.
 
@@ -451,6 +454,9 @@ added, edited, renamed, or deleted.**
 - `test/cli/init-command.test.ts` — end-to-end `veto init` in real temp git
   repos: starter scaffolding, electron-shaped detection, hook append and
   idempotent no-op, refusal on existing configs, exit 2 outside a repo.
+- `test/cli/schema-command.test.ts` — `schemaText` round-trips to
+  `configJsonSchema`; `veto schema` prints the schema to a fake terminal
+  and exits 0.
 - `test/cli/repo-root.test.ts` — toplevel resolution from the repo root and
   a subdirectory of real throwaway repos, `GitError` outside a repo.
 - `test/cli/prepare.test.ts` — run-input assembly from a positional dir vs
